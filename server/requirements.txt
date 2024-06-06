@@ -1,3 +1,5 @@
 blacksheep
 uvicorn
 shapely
+pyproj
+Pillow
