@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react'
 import './App.css'
-import {generateProject, getServiceState, Project, State} from "./api.ts";
+import {calculateProject, generateProject, getServiceState, Project, State} from "./api.ts";
 import {GeoJSONSource, LngLatLike, Map} from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {View, ViewLayer} from "./view.ts";
@@ -18,7 +18,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     }, [])
     const [projectName, setProjectName] = useState(preset.name);
     const project = projects[projectName];
-    const handleKeyPress = useCallback((event: KeyboardEvent) => {
+    const onKeyDown = useCallback((event: KeyboardEvent) => {
         if (event.key == ']') {
             const index = state.projects.findIndex(p => p.name == projectName);
             if (index + 1 < state.projects.length) {
@@ -33,11 +33,22 @@ function Constructor(props: { state: State, map: Map, view: View }) {
         }
     }, [projectName]);
     useEffect(() => {
-        document.addEventListener('keydown', handleKeyPress);
+        document.addEventListener('keydown', onKeyDown);
         return () => {
-            document.removeEventListener('keydown', handleKeyPress);
+            document.removeEventListener('keydown', onKeyDown);
         };
-    }, [handleKeyPress]);
+    }, [onKeyDown]);
+
+    const onResize = useCallback(() => {
+        console.log('reset');
+        view.updateSize();
+    }, [projectName])
+    useEffect(() => {
+        window.addEventListener('resize', onResize)
+        return () => {
+            window.removeEventListener('resize', onResize);
+        };
+    }, [onResize]);
 
 
     const changeProject = (name: string) => {
@@ -50,7 +61,6 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             zoom: target.zoom,
             curve: 0.9,
             bearing: target.bearing,
-            // bearing: 0.0,
             pitch: target.pitch,
             maxDuration: 4000
         });
@@ -60,22 +70,50 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             geometry: target.geo_polygon,
             properties: []
         });
-        setTimeout(() => {
-            view.recreateAt(center, polygon.geometry);
-        }, 500);
-
+        view.setup(polygon.geometry);
     }
     const generate = () => {
-        generateProject(project.name).then(tiles => {
+        generateProject(project.name, view.shapeTiles).then(tiles => {
+            view.erase();
             for (let tile of tiles) {
-                const [coords, kind] = tile;
+                const [[x, y], kind] = tile;
                 const color = {
                     'sport': 0xFF0000,
                     'child': 0x00FF00,
                     'relax': 0x0000ff
                 }[kind];
-                view.createTile(new Vector3(...coords), color!);
+                view.createTile(new Vector3(x, y), color!);
+                const marker = {
+                    'sport': 1,
+                    'child': 2,
+                    'relax': 3
+                }[kind];
+                view.shapeMatrix[y][x] = marker!;
             }
+            calculateProject(project.name, view.shapeMatrix).then(calculation => {
+                for (const [x, y, w, h] of calculation.sport) {
+                    view.createPlaceholder(
+                        new Vector3(x, y),
+                        new Vector3(w, h),
+                        0xff0000
+                    );
+                }
+                for (const [x, y, w, h] of calculation.child) {
+                    view.createPlaceholder(
+                        new Vector3(x, y),
+                        new Vector3(w, h),
+                        0x00ff00
+                    );
+                }
+                for (const [x, y, w, h] of calculation.relax) {
+                    view.createPlaceholder(
+                        new Vector3(x, y),
+                        new Vector3(w, h),
+                        0x0000ff
+                    );
+                }
+                console.log('calc', calculation);
+            })
         })
     }
     return <>
@@ -169,8 +207,16 @@ function App() {
                     } else {
                         clicks.push(event.lngLat.toArray());
                     }
+                    view.onMouseClick();
                     // view.click(event.lngLat);
                 })
+                map.on('mousemove', event => {
+                    // const point = turf.point(event.lngLat.toArray());
+                    // if (!(turf as any).booleanContains(POLY, point)) {
+                    //     return;
+                    // }
+                    view.onMouseMove(event.lngLat);
+                });
                 setView(view);
             });
         });

@@ -192,12 +192,28 @@ class Provider:
                     Project(
                         name='Осенний бульвар 5к2',
                         budget=1911505,
-                        geo_polygon=as_geo(Polygon([
-                            [37.404535628783094, 55.75648579905132],
-                            [37.40479299241278, 55.75635971928267],
-                            [37.40435080373143, 55.756087285164796],
-                            [37.40409662712227, 55.75621139198714]
-                        ])),
+                        geo_polygon=as_geo(Polygon(
+
+                            [
+                                [
+                                    37.40410565210635,
+                                    55.75621584896956
+                                ],
+                                [
+                                    37.4045146591001,
+                                    55.756494212488576
+                                ],
+                                [
+                                    37.404788723771105,
+                                    55.756356087515485
+                                ],
+                                [
+                                    37.40435679557541,
+                                    55.75608589329397
+                                ]
+                            ]
+
+                        )),
                         bearing=43.6,
                         pitch=42.5,
                         zoom=18.75
@@ -239,3 +255,66 @@ class Provider:
                 # ])
             )
         return self.users[user]
+
+
+Rect = tuple[int, int, int, int]
+
+
+def find_max_rectangles(matrix: list[list[int]], mark: int, min_area=1) -> Optional[Rect]:
+    position = [0, 0]
+    size = [0, 0]
+
+    if not matrix:
+        return None
+
+    rows = len(matrix)
+    cols = len(matrix[0])
+    left = [0] * cols  # Array to store the left boundary of consecutive 1's
+    right = [cols] * cols  # Array to store the right boundary of consecutive 1's
+    height = [0] * cols  # Array to store the height of consecutive 1's
+
+    max_area = 0
+
+    for i in range(0, rows):
+        row = matrix[i]
+        cur_left = 0
+        cur_right = cols
+
+        # Update height array
+        for j in range(0, cols):
+            if row[j] == mark:
+                height[j] += 1
+            else:
+                height[j] = 0
+
+        # Update left boundary array
+        for j in range(0, cols):
+            if row[j] == mark:
+                left[j] = max(left[j], cur_left)
+            else:
+                left[j] = 0
+                cur_left = j + 1
+
+        # Update right boundary array
+        for j in range(cols - 1, -1, -1):
+            if row[j] == mark:
+                right[j] = min(right[j], cur_right)
+            else:
+                right[j] = cols
+                cur_right = j
+
+        # Calculate maximum area for each cell
+        for j in range(0, cols):
+            area = (right[j] - left[j]) * height[j]
+            if area > max_area:
+                max_area = area
+
+                size[0] = right[j] - left[j]
+                size[1] = height[j]
+                position[0] = left[j]
+                position[1] = i - height[j] + 1
+
+    if max_area > min_area:
+        return position[0], position[1], size[0], size[1]
+
+    return None

@@ -30,8 +30,32 @@ export async function getServiceState(): Promise<State> {
 
 type Tile = [[number, number], string];
 
-export async function generateProject(name: string): Promise<Tile[]> {
-    const params = new URLSearchParams({name})
-    const response = await fetch(`${baseUrl}/api/${user}/generation?` + params, {method: 'GET', })
+export async function generateProject(name: string, area: number[][]): Promise<Tile[]> {
+    const response = await fetch(`${baseUrl}/api/${user}/generation`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, area })
+    })
+    return await response.json()
+}
+
+interface Calculation {
+    sport: number[][],
+    child: number[][],
+    relax: number[][],
+}
+
+export async function calculateProject(name: string, matrix: number[][]): Promise<Calculation> {
+    const response = await fetch(`${baseUrl}/api/${user}/calculation`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, matrix })
+    })
     return await response.json()
 }
