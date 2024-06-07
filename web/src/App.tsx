@@ -91,25 +91,28 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                 view.shapeMatrix[y][x] = marker!;
             }
             calculateProject(project.name, view.shapeMatrix).then(calculation => {
-                for (const [x, y, w, h] of calculation.sport) {
+                for (const rect of calculation.sport) {
                     view.createPlaceholder(
-                        new Vector3(x, y),
-                        new Vector3(w, h),
-                        0xff0000
+                        new Vector3(...rect.position),
+                        new Vector3(...rect.size),
+                        0xff0000,
+                        rect.weight * 10.0
                     );
                 }
-                for (const [x, y, w, h] of calculation.child) {
+                for (const rect of calculation.child) {
                     view.createPlaceholder(
-                        new Vector3(x, y),
-                        new Vector3(w, h),
-                        0x00ff00
+                        new Vector3(...rect.position),
+                        new Vector3(...rect.size),
+                        0x00ff00,
+                        rect.weight * 10.0
                     );
                 }
-                for (const [x, y, w, h] of calculation.relax) {
+                for (const rect of calculation.relax) {
                     view.createPlaceholder(
-                        new Vector3(x, y),
-                        new Vector3(w, h),
-                        0x0000ff
+                        new Vector3(...rect.position),
+                        new Vector3(...rect.size),
+                        0x0000ff,
+                        rect.weight * 10.0
                     );
                 }
                 console.log('calc', calculation);

@@ -214,19 +214,18 @@ export class View {
         return mesh;
     }
 
-    createPlaceholder(position: Vector3, size: Vector3, color: number): Mesh {
+    createPlaceholder(tile: Vector3, size: Vector3, color: number, height: number): Mesh {
         const material = new MeshPhongMaterial({
             color,
             flatShading: true,
             side: DoubleSide,
         });
-        const h = 0.9;
-        const geometry = new BoxGeometry(size.x - 0.3, size.y - 0.3, h);
+        const geometry = new BoxGeometry(size.x - 0.3, size.y - 0.3, height);
         const mesh = new Mesh(geometry, material);
-        position.x += size.x / 2.0 - 0.5;
-        position.y += size.y / 2.0 - 0.5;
-        position.z = h / 2.0;
-        mesh.position.copy(this.toPosition(position));
+        tile.x += size.x / 2.0 - 0.5;
+        tile.y += size.y / 2.0 - 0.5;
+        mesh.position.copy(this.toPosition(tile));
+        mesh.position.z = height / 2.0;
         mesh.rotation.z = this.rotation;
         this.groupMafs.add(mesh);
         return mesh;

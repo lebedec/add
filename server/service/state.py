@@ -257,10 +257,24 @@ class Provider:
         return self.users[user]
 
 
-Rect = tuple[int, int, int, int]
+RectCoords = tuple[int, int, int, int]
 
 
-def find_max_rectangles(matrix: list[list[int]], mark: int, min_area=1) -> Optional[Rect]:
+@dataclass
+class Rect:
+    id: int
+    position: tuple[int, int]
+    size: tuple[int, int]
+    weight: float
+    distance: float
+    budget: float
+
+    @property
+    def area(self) -> float:
+        return float(self.size[0] * self.size[1])
+
+
+def find_max_rectangles(matrix: list[list[int]], mark: int, min_area=1) -> Optional[RectCoords]:
     position = [0, 0]
     size = [0, 0]
 

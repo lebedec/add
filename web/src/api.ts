@@ -42,10 +42,19 @@ export async function generateProject(name: string, area: number[][]): Promise<T
     return await response.json()
 }
 
+interface Rectangle {
+    id: number,
+    position: number[],
+    size: number[],
+    weight: number,
+    distance: number,
+    budget: number,
+}
+
 interface Calculation {
-    sport: number[][],
-    child: number[][],
-    relax: number[][],
+    sport: Rectangle[],
+    child: Rectangle[],
+    relax: Rectangle[],
 }
 
 export async function calculateProject(name: string, matrix: number[][]): Promise<Calculation> {
