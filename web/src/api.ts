@@ -9,6 +9,21 @@ const user = localStorage.getItem('user');
 
 const baseUrl = 'http://localhost:44777'
 
+export interface Maf {
+    name: string,
+    key: string,
+    provider: string,
+    number: string,
+    code: string,
+    category: string,
+    cost: number
+    preview: string,
+    model: string,
+    size: number[],
+    safe: number[],
+    tiles: number[]
+}
+
 export interface Project {
     name: string,
     budget: number,
@@ -42,19 +57,22 @@ export async function generateProject(name: string, area: number[][]): Promise<T
     return await response.json()
 }
 
-interface Rectangle {
+interface Slot {
     id: number,
     position: number[],
     size: number[],
     weight: number,
     distance: number,
     budget: number,
+    maf: null | Maf,
+    maf_budget: number,
+    maf_rotation: number
 }
 
 interface Calculation {
-    sport: Rectangle[],
-    child: Rectangle[],
-    relax: Rectangle[],
+    sport: Slot[],
+    child: Slot[],
+    relax: Slot[],
 }
 
 export async function calculateProject(name: string, matrix: number[][]): Promise<Calculation> {

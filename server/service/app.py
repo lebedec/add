@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 import shapely
 from blacksheep import Application, get, FromQuery, post, FromJSON
 from rodi import Container
 from shapely import Polygon, Point
 
-from service.state import Provider, find_max_rectangles, Rect
+from service.state import Provider, find_max_rectangles, Rect, Maf
 
 dependencies = Container()
 dependencies.add_instance(Provider())
@@ -74,11 +75,10 @@ class CalculationData:
 
 @post("/api/{user}/calculation")
 def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
-    model = provider.get_state(user)
-    project = model.get_project(data.value.name)
+    state = provider.get_state(user)
+    project = state.get_project(data.value.name)
     matrix = data.value.matrix
 
-    print('calculation')
     mapping = {
         'sport': 1,
         'child': 2,
@@ -130,7 +130,10 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
                             size=(w, h),
                             weight=0.0,
                             distance=0.0,
-                            budget=0.0
+                            budget=0.0,
+                            maf=None,
+                            maf_budget=0.0,
+                            maf_rotation=0.0
                         ))
                         ox += w
                     oy += h
@@ -141,7 +144,10 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
                     size=(w, h),
                     weight=0.0,
                     distance=0.0,
-                    budget=0.0
+                    budget=0.0,
+                    maf=None,
+                    maf_budget=0.0,
+                    maf_rotation=0.0
                 ))
 
         if rectangles:
@@ -216,5 +222,42 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
             # sum_weight = sum(rect.weight for rect in rectangles)
             # print('weight', 1.0, 'primary', primaries_total_weight, 'second', secondaries_total_weight, 'control', sum_weight)
 
+        # assignment
+        catalog = [maf for maf in state.catalog if maf.category == kind]
+        assign_mafs(rectangles, catalog)
+
         calculation[kind] = rectangles
     return calculation
+
+
+def assign_mafs(rectangles: list[Rect], catalog: list[Maf]):
+    catalog = list(sorted(catalog, key=lambda maf: maf.cost))
+
+    def find_maf_variants(budget: float, size: tuple[int, int]) -> list[tuple[Maf, float]]:
+        def match_size(w, h):
+            return w <= size[0] < w * 3 and h <= size[1] < h * 3
+
+        variants = []
+        for maf in catalog:
+            if maf.cost < budget:
+                x, y = maf.tiles
+                if match_size(x, y):
+                    variants.append((maf, 0.0))
+                if match_size(y, x):
+                    variants.append((maf, 90.0 * 0.017453))
+            else:
+                break
+        return variants
+
+    to_dominant = sorted(rectangles, key=lambda rectangle: rectangle.weight)
+    budget = 0.0
+    for rect in to_dominant:
+        budget += rect.budget
+        rect.maf_budget = budget
+        variants = find_maf_variants(budget, rect.size)
+        if variants:
+            # cheapest = variants[0]
+            maf, rotation = variants[-1]
+            budget -= maf.cost
+            rect.maf = maf
+            rect.maf_rotation = rotation

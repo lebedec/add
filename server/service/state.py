@@ -20,6 +20,22 @@ def as_geo(geometry: BaseGeometry) -> dict:
 
 
 @dataclass
+class Maf:
+    name: str
+    key: str
+    provider: str
+    number: str
+    code: str
+    category: str
+    cost: float
+    preview: str
+    model: str
+    size: list[int]
+    safe: list[int]
+    tiles: list[int]
+
+
+@dataclass
 class Project:
     name: str
     budget: int
@@ -29,28 +45,21 @@ class Project:
     zoom: float
 
 
-def read_projects(names: list[str]) -> list[Project]:
-    projects = []
-    with open(base_path + '/data/polygons.json') as polygons_file:
-        polygons = json.load(polygons_file)
-        for name in names:
-            geo_polygon = polygons[name]['geometry']
-            geo_centroid = as_geo(as_polygon(geo_polygon).centroid)
-            projects.append(Project(
-                name=name,
-                budget=100_500,
-                geo_polygon=geo_polygon,
-                bearing=0,
-                pitch=46,
-                zoom=18
-            ))
-    return projects
+def read_catalog() -> list[Maf]:
+    catalog = []
+    with open(base_path + '/data/catalog.json') as catalog_file:
+        records = json.load(catalog_file)
+        for record in records:
+            maf = Maf(**record)
+            catalog.append(maf)
+    return catalog
 
 
 @dataclass
 class State:
     value: int
     projects: list[Project]
+    catalog: list[Maf]
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -78,33 +87,17 @@ class Provider:
         if user not in self.users:
             self.users[user] = State(
                 value=42,
+                catalog=read_catalog(),
                 projects=[
-
                     Project(
                         name='Осенний бульвар 10к2',
                         budget=2722530,
-                        geo_polygon=as_geo(Polygon(
-
-                            [
-                                [
-                                    37.409606827856805,
-                                    55.757169242759346
-                                ],
-                                [
-                                    37.41074168461361,
-                                    55.75722690980794
-                                ],
-                                [
-                                    37.410775775880666,
-                                    55.756940030391235
-                                ],
-                                [
-                                    37.409646715874885,
-                                    55.756894041549
-                                ]
-                            ]
-
-                        )),
+                        geo_polygon=as_geo(Polygon([
+                            [37.409606827856805, 55.757169242759346],
+                            [37.41074168461361, 55.75722690980794],
+                            [37.410775775880666, 55.756940030391235],
+                            [37.409646715874885, 55.756894041549]
+                        ])),
                         bearing=-12.0,
                         pitch=48,
                         zoom=18.0
@@ -112,42 +105,14 @@ class Provider:
                     Project(
                         name='Осенний бульвар 2',
                         budget=315_000,
-                        # geo_polygon=as_geo(Polygon([
-                        #     [37.40991048443604, 55.75294979423376],
-                        #     [37.409932956205154, 55.75273964888416],
-                        #     [37.40961220570685, 55.752726266346144],
-                        #     [37.409595103632796, 55.75293436886963]
-                        # ])),
-                        geo_polygon=as_geo(Polygon(
-
-                            [
-                                [
-                                    37.40959399215026,
-                                    55.75294214720114
-                                ],
-                                [
-                                    37.409836462281106,
-                                    55.75294462373509
-                                ],
-                                [
-                                    37.40984503422118,
-                                    55.75290603198485
-                                ],
-                                [
-                                    37.40991503840496,
-                                    55.752910453958435
-                                ],
-                                [
-                                    37.40994575452504,
-                                    55.75274241862121
-                                ],
-                                [
-                                    37.40961573480561,
-                                    55.75272513264841
-                                ]
-                            ]
-
-                        )),
+                        geo_polygon=as_geo(Polygon([
+                            [37.40959399215026, 55.75294214720114],
+                            [37.409836462281106, 55.75294462373509],
+                            [37.40984503422118, 55.75290603198485],
+                            [37.40991503840496, 55.752910453958435],
+                            [37.40994575452504, 55.75274241862121],
+                            [37.40961573480561, 55.75272513264841]
+                        ])),
                         bearing=63,
                         pitch=50,
                         zoom=18.76
@@ -221,38 +186,16 @@ class Provider:
                     Project(
                         name='Осенний бульвар 5к3',
                         budget=430070,
-                        geo_polygon=as_geo(Polygon(
-                            [
-                                [
-                                    37.403493090642826,
-                                    55.75716930406355
-                                ],
-                                [
-                                    37.40403289185235,
-                                    55.75720382074681
-                                ],
-                                [
-                                    37.403550751228295,
-                                    55.756908356949964
-                                ]
-                            ]
-
-                        )),
+                        geo_polygon=as_geo(Polygon([
+                            [37.403493090642826, 55.75716930406355],
+                            [37.40403289185235, 55.75720382074681],
+                            [37.403550751228295, 55.756908356949964]
+                        ])),
                         bearing=134.8,
                         pitch=37.5,
                         zoom=18
                     ),
                 ]
-                # projects=read_projects([
-                #     # # small
-                #     # '296', '275', '272', '216', '177', '172',
-                #     # # medium
-                #     # '183', '202', '164', '180', '289', '221', '117', '50', '28',
-                #     # # large
-                #     # '285', '203', '58', '52'
-                #     # new
-                #     # '172', '177', '183', '180',
-                # ])
             )
         return self.users[user]
 
@@ -268,6 +211,9 @@ class Rect:
     weight: float
     distance: float
     budget: float
+    maf: Optional[Maf]
+    maf_budget: float
+    maf_rotation: float
 
     @property
     def area(self) -> float:

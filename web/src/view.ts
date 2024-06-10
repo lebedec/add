@@ -11,8 +11,11 @@ import {
     WebGLRenderer
 } from "three";
 import {Polygon, Position} from "geojson";
+import {calculateProject} from "./api.ts";
 
 type ViewLoader = (scene: View) => void;
+
+export type Brash = 'sport' | 'child' | 'relax' | 'erase' | null;
 
 export class View {
     camera: Camera;
@@ -39,6 +42,8 @@ export class View {
     tile = new Vector3(0, 0);
     cursor = new Vector3(0.0, 0.0, 0.0);
     cursorMesh: Mesh;
+    brash: Brash = null;
+    project: string = '';
 
     groupMafs = new Group();
     groupTiles = new Group();
@@ -82,6 +87,7 @@ export class View {
         const ambientLight = new AmbientLight(0xFFFFFF, 2.0);
         this.scene.add(ambientLight);
 
+        this.groupTiles.visible = false;
         this.scene.add(this.groupMafs);
         this.scene.add(this.groupTiles);
         this.scene.add(this.groupGizmos);
@@ -90,15 +96,24 @@ export class View {
     }
 
     async awake() {
-        this.models['a'] = await this.loadModel('./models/leber-lgik-120.glb');
-        this.models['b'] = await this.loadModel('./models/leber-lgik-803.glb');
+        this.models['leber-lgik-120.glb'] = await this.loadModel('./models/leber-lgik-120.glb');
+        this.models['leber-lgik-803.glb'] = await this.loadModel('./models/leber-lgik-803.glb');
+        this.models['leber-msk-108101.glb'] = await this.loadModel('./models/leber-msk-108101.glb');
+        this.models['leber-lgp-97.glb'] = await this.loadModel('./models/leber-lgp-97.glb');
+        this.models['leber-lgk-31.glb'] = await this.loadModel('./models/leber-lgk-31.glb');
+        this.models['leber-msk-201.glb'] = await this.loadModel('./models/leber-msk-201.glb');
+        this.models['leber-lgp-109p.glb'] = await this.loadModel('./models/leber-lgp-109p.glb');
+        this.models['leber-lgk-109.glb'] = await this.loadModel('./models/leber-lgk-109.glb');
+        this.models['leber-lgk-20.glb'] = await this.loadModel('./models/leber-lgk-20.glb');
+        this.models['leber-lgk-247.glb'] = await this.loadModel('./models/leber-lgk-247.glb');
+        this.models['leber-lgk-21.glb'] = await this.loadModel('./models/leber-lgk-21.glb');
     }
 
     async loadModel(path: string): Promise<GLTF> {
         const model: GLTF = await this.loader.loadAsync(path);
         model.scene.traverse(node => {
-            // if outline add to group
-            if ((node as any).isMesh) {
+
+            if ((node as any).isMesh && !node.name.startsWith('_')) {
                 node.castShadow = true;
             }
         });
@@ -134,19 +149,6 @@ export class View {
 
         this.cursorMesh = this.createCursor();
 
-        const model2 = this.models['b'].scene.clone(true);
-        model2.rotation.set(0, 0, this.rotation);
-        model2.position.x = 5.0;
-        model2.position.y = 4.0;
-        model2.position.copy(this.toPosition(new Vector3(5, 4)));
-        this.groupMafs.add(model2);
-
-        const model3 = this.models['b'].scene.clone(true);
-        model3.rotation.set(0, 0, this.rotation);
-        model3.position.x = 0.0;
-        model3.position.y = 0.0;
-        this.groupMafs.add(model3);
-
         this.shape = new Shape(polygon.coordinates[0].map(p => this.fromMap2D(p)));
         this.shapeTiles = this.shape.getPoints().map(point => this.toTile(new Vector3(point.x, point.y)).toArray());
         this.shapeBounds = new Vector2();
@@ -167,27 +169,12 @@ export class View {
         const mesh = new Mesh(geometry, new MeshPhongMaterial({
             flatShading: true,
             color: 0xffffff,
-            opacity: 0.5,
-            transparent: true
+            opacity: 1.0,
+            transparent: false
         }));
         mesh.receiveShadow = true;
-        mesh.position.z = -0.05;
-        this.groupMafs.add(mesh);
-
-
-        // const b1 = this.createBox(0xFF0000);
-        // this.groupMafs.add(b1);
-        // b1.rotation.z = this.rotation;
-        // const b2 = this.createBox(0x00FF00);
-        // b2.position.x = 2.0;
-        // b2.rotation.z = this.rotation;
-        // this.groupMafs.add(b2)
-        // const b3 = this.createBox(0x0000FF);
-        // b3.position.x = 1.0;
-        // b3.position.y = 2.0;
-        // b3.position.z = 0.0;
-        // b3.rotation.z = this.rotation;
-        // this.groupMafs.add(b3)
+        mesh.position.z = -0.1;
+        this.groupGizmos.add(mesh);
     }
 
     erase() {
@@ -210,7 +197,7 @@ export class View {
         mesh.position.copy(this.toPosition(tile));
         mesh.position.z = 0.0;
         mesh.rotation.z = this.rotation;
-        this.groupMafs.add(mesh);
+        this.groupTiles.add(mesh);
         return mesh;
     }
 
@@ -220,6 +207,7 @@ export class View {
             flatShading: true,
             side: DoubleSide,
         });
+        height = 0.1;
         const geometry = new BoxGeometry(size.x - 0.3, size.y - 0.3, height);
         const mesh = new Mesh(geometry, material);
         tile.x += size.x / 2.0 - 0.5;
@@ -227,13 +215,22 @@ export class View {
         mesh.position.copy(this.toPosition(tile));
         mesh.position.z = height / 2.0;
         mesh.rotation.z = this.rotation;
-        this.groupMafs.add(mesh);
+        this.groupTiles.add(mesh);
         return mesh;
+    }
+
+    createMaf(tile: Vector3, size: Vector3, model: string, rotation: number) {
+        const mesh = this.models[model].scene.clone(true);
+        mesh.rotation.set(0, 0, this.rotation + rotation);
+        tile.x += size.x / 2.0 - 0.5;
+        tile.y += size.y / 2.0 - 0.5;
+        mesh.position.copy(this.toPosition(tile));
+        this.groupMafs.add(mesh);
     }
 
     createCursor(): Mesh {
         const material2 = new MeshBasicMaterial({
-            color: 0xffffff,
+            color: 0x000000,
             transparent: true,
             opacity: 0.5
         });
@@ -244,7 +241,7 @@ export class View {
         this.groupGizmos.add(this.cursorMesh);
 
         let geo = new EdgesGeometry(this.cursorMesh.geometry); // or WireframeGeometry
-        let mat = new LineBasicMaterial({color: 0xffffff});
+        let mat = new LineBasicMaterial({color: 0x000000});
         let wireframe = new LineSegments(geo, mat);
         this.cursorMesh.add(wireframe);
         this.cursorMesh.rotation.z = this.rotation;
@@ -275,7 +272,62 @@ export class View {
     }
 
     onMouseClick() {
-        console.log('click', 'tile', this.tile.toArray(), 'cursor', this.cursor.toArray());
+        console.log('click', this.brash, 'tile', this.tile.toArray(), 'cursor', this.cursor.toArray());
+        if (this.brash == null) {
+            return;
+        }
+
+        const brashMapping = {
+            'erase': 0,
+            'sport': 1,
+            'child': 2,
+            'relax': 3
+        };
+
+        const [x, y] = this.tile.toArray();
+        if (y < this.shapeMatrix.length && y >= 0) {
+            if (x < this.shapeMatrix.length && x >= 0) {
+                this.shapeMatrix[y][x] = brashMapping[this.brash];
+            }
+        }
+
+        calculateProject(this.project, this.shapeMatrix).then(calculation => {
+            for (const rect of calculation.sport) {
+                this.createPlaceholder(
+                    new Vector3(...rect.position),
+                    new Vector3(...rect.size),
+                    0xff0000,
+                    rect.weight * 10.0
+                );
+            }
+            for (const rect of calculation.child) {
+                if (rect.maf != null && rect.maf.model != "") {
+                    this.createMaf(
+                        new Vector3(...rect.position),
+                        new Vector3(...rect.size),
+                        rect.maf.model,
+                        rect.maf_rotation
+                    )
+                } else if (rect.maf != null) {
+                    console.log('MAF not implemented', rect.maf?.key)
+                }
+                this.createPlaceholder(
+                    new Vector3(...rect.position),
+                    new Vector3(...rect.size),
+                    0x00ff00,
+                    rect.weight * 10.0
+                );
+            }
+            for (const rect of calculation.relax) {
+                this.createPlaceholder(
+                    new Vector3(...rect.position),
+                    new Vector3(...rect.size),
+                    0x0000ff,
+                    rect.weight * 10.0
+                );
+            }
+            console.log('calc', calculation);
+        })
     }
 
     toTile(position: Vector3): Vector2 {

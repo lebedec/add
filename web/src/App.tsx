@@ -3,9 +3,10 @@ import './App.css'
 import {calculateProject, generateProject, getServiceState, Project, State} from "./api.ts";
 import {GeoJSONSource, LngLatLike, Map} from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import {View, ViewLayer} from "./view.ts";
+import {Brash, View, ViewLayer} from "./view.ts";
 import * as turf from '@turf/turf'
 import {Vector3} from "three";
+import clsx from "clsx";
 
 function Constructor(props: { state: State, map: Map, view: View }) {
     const {state, map, view} = props;
@@ -16,6 +17,18 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     useEffect(() => {
         changeProject(preset.name);
     }, [])
+    const [brash, setBrash] = useState<Brash>(null);
+    const togglePen = (value: Brash) => {
+        if (value == brash || value == null) {
+            setBrash(null);
+            view.groupTiles.visible = false;
+            view.brash = null;
+        } else {
+            setBrash(value);
+            view.groupTiles.visible = true;
+            view.brash = value;
+        }
+    }
     const [projectName, setProjectName] = useState(preset.name);
     const project = projects[projectName];
     const onKeyDown = useCallback((event: KeyboardEvent) => {
@@ -40,7 +53,6 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     }, [onKeyDown]);
 
     const onResize = useCallback(() => {
-        console.log('reset');
         view.updateSize();
     }, [projectName])
     useEffect(() => {
@@ -50,7 +62,68 @@ function Constructor(props: { state: State, map: Map, view: View }) {
         };
     }, [onResize]);
 
+    const erase = () => {
+        view.erase();
+    }
 
+    const generate = () => {
+        console.log('generate', view.project);
+        generateProject(view.project, view.shapeTiles).then(tiles => {
+            view.erase();
+            for (let tile of tiles) {
+                const [[x, y], kind] = tile;
+                const color = {
+                    'sport': 0xFF0000,
+                    'child': 0x00FF00,
+                    'relax': 0x0000ff
+                }[kind];
+                view.createTile(new Vector3(x, y), color!);
+                const marker = {
+                    'sport': 1,
+                    'child': 2,
+                    'relax': 3
+                }[kind];
+                view.shapeMatrix[y][x] = marker!;
+            }
+            calculateProject(view.project, view.shapeMatrix).then(calculation => {
+                for (const rect of calculation.sport) {
+                    view.createPlaceholder(
+                        new Vector3(...rect.position),
+                        new Vector3(...rect.size),
+                        0xff0000,
+                        rect.weight * 10.0
+                    );
+                }
+                for (const rect of calculation.child) {
+                    if (rect.maf != null && rect.maf.model != "") {
+                        view.createMaf(
+                            new Vector3(...rect.position),
+                            new Vector3(...rect.size),
+                            rect.maf.model,
+                            rect.maf_rotation
+                        )
+                    } else if (rect.maf != null) {
+                        console.log('MAF not implemented', rect.maf?.key)
+                    }
+                    view.createPlaceholder(
+                        new Vector3(...rect.position),
+                        new Vector3(...rect.size),
+                        0x00ff00,
+                        rect.weight * 10.0
+                    );
+                }
+                for (const rect of calculation.relax) {
+                    view.createPlaceholder(
+                        new Vector3(...rect.position),
+                        new Vector3(...rect.size),
+                        0x0000ff,
+                        rect.weight * 10.0
+                    );
+                }
+                console.log('calc', calculation);
+            })
+        })
+    };
     const changeProject = (name: string) => {
         setProjectName(name);
         const target = projects[name];
@@ -71,54 +144,11 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             properties: []
         });
         view.setup(polygon.geometry);
+        view.project = name;
+        console.log('change', view.project);
+        setTimeout(generate);
     }
-    const generate = () => {
-        generateProject(project.name, view.shapeTiles).then(tiles => {
-            view.erase();
-            for (let tile of tiles) {
-                const [[x, y], kind] = tile;
-                const color = {
-                    'sport': 0xFF0000,
-                    'child': 0x00FF00,
-                    'relax': 0x0000ff
-                }[kind];
-                view.createTile(new Vector3(x, y), color!);
-                const marker = {
-                    'sport': 1,
-                    'child': 2,
-                    'relax': 3
-                }[kind];
-                view.shapeMatrix[y][x] = marker!;
-            }
-            calculateProject(project.name, view.shapeMatrix).then(calculation => {
-                for (const rect of calculation.sport) {
-                    view.createPlaceholder(
-                        new Vector3(...rect.position),
-                        new Vector3(...rect.size),
-                        0xff0000,
-                        rect.weight * 10.0
-                    );
-                }
-                for (const rect of calculation.child) {
-                    view.createPlaceholder(
-                        new Vector3(...rect.position),
-                        new Vector3(...rect.size),
-                        0x00ff00,
-                        rect.weight * 10.0
-                    );
-                }
-                for (const rect of calculation.relax) {
-                    view.createPlaceholder(
-                        new Vector3(...rect.position),
-                        new Vector3(...rect.size),
-                        0x0000ff,
-                        rect.weight * 10.0
-                    );
-                }
-                console.log('calc', calculation);
-            })
-        })
-    }
+
     return <>
         <div className="header">
             Header {props.state.value} {project.name} {project.budget} руб.
@@ -127,7 +157,18 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                     <option key={project.name} value={project.name}>{project.name}</option>
                 )}
             </select>
-            <button onClick={generate}>Generate</button>
+
+        </div>
+        <div className="footer">
+            <button onClick={generate}>💫Сгенерировать</button>
+            <button onClick={erase}>❌Удалить</button>
+            <div style={{height: '16px', border: "1px solid red"}}></div>
+            <input type="range" min={1} max={3} />
+            <button className={clsx({active: brash == 'sport'})} onClick={() => togglePen('sport')}>🖊️Спорт</button>
+            <button className={clsx({active: brash == 'child'})} onClick={() => togglePen('child')}>🖊️Дети</button>
+            <button className={clsx({active: brash == 'relax'})} onClick={() => togglePen('relax')}>🖊️Отдых</button>
+            <button className={clsx({active: brash == 'erase'})} onClick={() => togglePen('erase')}>🧹Удалить</button>
+
         </div>
     </>
 }
@@ -145,7 +186,7 @@ async function createMap(): Promise<Map> {
         minZoom: 17.0,
         pitch: 40.00,
         attributionControl: false,
-        antialias: false,
+        antialias: true,
         maxPitch: 50.0,
         dragPan: false,
         doubleClickZoom: false,
@@ -198,14 +239,14 @@ function App() {
         createMap().then(map => {
             setMap(map);
             ViewLayer.create(map).then(view => {
-                map.on('keydown', event => {
-                    console.log(event.key);
-                })
+                // map.on('keydown', event => {
+                //     // console.log(event.key);
+                // })
                 let clicks: number[][] = [];
                 map.on('click', event => {
                     if (event.originalEvent.altKey) {
-                        console.log('zoom', map.getZoom(), 'bearing', map.getBearing(), 'pitch', map.getPitch());
-                        console.log({clicks});
+                        // console.log('zoom', map.getZoom(), 'bearing', map.getBearing(), 'pitch', map.getPitch());
+                        // console.log({clicks});
                         clicks = [];
                     } else {
                         clicks.push(event.lngLat.toArray());
