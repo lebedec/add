@@ -1,17 +1,29 @@
-import mapboxgl, {CustomLayerInterface, LngLatLike} from "mapbox-gl";
-import {Map} from 'mapbox-gl';
+import mapboxgl, {CustomLayerInterface, LngLatLike, Map} from "mapbox-gl";
 import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {
-    AmbientLight, BoxGeometry,
-    Camera, DirectionalLight, DoubleSide, EdgesGeometry, ExtrudeGeometry, Group,
-    HemisphereLight, LineBasicMaterial, LineSegments,
-    Matrix4, Mesh, MeshBasicMaterial, MeshPhongMaterial,
-    Scene, Shape, Vector2,
+    AmbientLight,
+    BoxGeometry,
+    Camera,
+    DirectionalLight,
+    DoubleSide,
+    EdgesGeometry,
+    ExtrudeGeometry,
+    Group,
+    HemisphereLight,
+    LineBasicMaterial,
+    LineSegments,
+    Matrix4,
+    Mesh,
+    MeshBasicMaterial,
+    MeshPhongMaterial,
+    Scene,
+    Shape,
+    Vector2,
     Vector3,
     WebGLRenderer
 } from "three";
 import {Polygon, Position} from "geojson";
-import {calculateProject} from "./api.ts";
+import {calculateProject, Slot} from "./api.ts";
 
 type ViewLoader = (scene: View) => void;
 
@@ -42,12 +54,16 @@ export class View {
     tile = new Vector3(0, 0);
     cursor = new Vector3(0.0, 0.0, 0.0);
     cursorMesh: Mesh;
+    cursorRadius = 1;
+    cursorActive = false;
     brash: Brash = null;
     project: string = '';
 
     groupMafs = new Group();
     groupTiles = new Group();
     groupGizmos = new Group();
+
+    calculate: () => void;
 
     constructor(map: Map, context: WebGLRenderingContext) {
         this.camera = new Camera();
@@ -93,9 +109,11 @@ export class View {
         this.scene.add(this.groupGizmos);
 
         this.cursorMesh = this.createCursor();
+        this.calculate = debounce(this.calculateProject.bind(this));
     }
 
     async awake() {
+        // child
         this.models['leber-lgik-120.glb'] = await this.loadModel('./models/leber-lgik-120.glb');
         this.models['leber-lgik-803.glb'] = await this.loadModel('./models/leber-lgik-803.glb');
         this.models['leber-msk-108101.glb'] = await this.loadModel('./models/leber-msk-108101.glb');
@@ -107,6 +125,13 @@ export class View {
         this.models['leber-lgk-20.glb'] = await this.loadModel('./models/leber-lgk-20.glb');
         this.models['leber-lgk-247.glb'] = await this.loadModel('./models/leber-lgk-247.glb');
         this.models['leber-lgk-21.glb'] = await this.loadModel('./models/leber-lgk-21.glb');
+        // sport
+        this.models['kpro-018.glb'] = await this.loadModel('./models/kpro-018.glb');
+        this.models['kpro-001.glb'] = await this.loadModel('./models/kpro-001.glb');
+        this.models['kpro-010.glb'] = await this.loadModel('./models/kpro-010.glb');
+        this.models['kpro-014.glb'] = await this.loadModel('./models/kpro-014.glb');
+        this.models['kpro-022.glb'] = await this.loadModel('./models/kpro-022.glb');
+        this.models['kpro-035.glb'] = await this.loadModel('./models/kpro-035.glb');
     }
 
     async loadModel(path: string): Promise<GLTF> {
@@ -180,28 +205,32 @@ export class View {
     erase() {
         this.groupMafs.remove(...this.groupMafs.children);
         this.groupTiles.remove(...this.groupTiles.children);
+    }
+
+    eraseShapeMatrix() {
         this.shapeMatrix = [];
         for (let y = 0; y < this.shapeBounds.y; y++) {
             this.shapeMatrix.push(new Array(this.shapeBounds.x).fill(0));
         }
     }
 
-    createTile(tile: Vector3, color: number): Mesh {
+    createTile(key: string, tile: Vector3, color: number): Mesh {
         const material = new MeshPhongMaterial({
             color,
             flatShading: true,
             side: DoubleSide,
         });
-        const geometry = new BoxGeometry(0.9, 0.9, 0.2);
+        const geometry = new BoxGeometry(0.5, 0.5, 0.5);
         const mesh = new Mesh(geometry, material);
         mesh.position.copy(this.toPosition(tile));
-        mesh.position.z = 0.0;
+        mesh.position.z = 0.2;
         mesh.rotation.z = this.rotation;
+        mesh.userData.key = key;
         this.groupTiles.add(mesh);
         return mesh;
     }
 
-    createPlaceholder(tile: Vector3, size: Vector3, color: number, height: number): Mesh {
+    createPlaceholder(key: string, tile: Vector3, size: Vector3, color: number, height: number): Mesh {
         const material = new MeshPhongMaterial({
             color,
             flatShading: true,
@@ -215,16 +244,18 @@ export class View {
         mesh.position.copy(this.toPosition(tile));
         mesh.position.z = height / 2.0;
         mesh.rotation.z = this.rotation;
+        mesh.userData.key = key;
         this.groupTiles.add(mesh);
         return mesh;
     }
 
-    createMaf(tile: Vector3, size: Vector3, model: string, rotation: number) {
+    createMaf(key: string, tile: Vector3, size: Vector3, model: string, rotation: number) {
         const mesh = this.models[model].scene.clone(true);
         mesh.rotation.set(0, 0, this.rotation + rotation);
         tile.x += size.x / 2.0 - 0.5;
         tile.y += size.y / 2.0 - 0.5;
         mesh.position.copy(this.toPosition(tile));
+        mesh.userData.key = key;
         this.groupMafs.add(mesh);
     }
 
@@ -271,8 +302,68 @@ export class View {
         this.cursorMesh.position.y = this.cursor.y;
     }
 
-    onMouseClick() {
-        console.log('click', this.brash, 'tile', this.tile.toArray(), 'cursor', this.cursor.toArray());
+    calculateProject() {
+
+        // console.log('calculate', this.project, this.shapeMatrix);
+
+        // this.erase();
+
+        calculateProject(this.project, this.shapeMatrix).then(calculation => {
+
+            let removingMafs: Record<string, any> = {};
+            for (let maf of this.groupMafs.children) {
+                removingMafs[maf.userData.key] = maf;
+            }
+            let removingRects: Record<string, any> = {};
+            for (let mesh of this.groupTiles.children) {
+                removingRects[mesh.userData.key] = mesh;
+            }
+
+            for (const rect of calculation) {
+                if (rect.maf != null && rect.maf.model != "") {
+                    const mkey = mafKey(rect);
+                    if (removingMafs[mkey]) {
+                        delete removingMafs[mkey]
+                    } else {
+                        this.createMaf(
+                            mkey,
+                            new Vector3(...rect.position),
+                            new Vector3(...rect.size),
+                            rect.maf.model,
+                            rect.maf_rotation
+                        )
+                    }
+                } else if (rect.maf != null) {
+                    console.log('MAF not implemented', rect.maf?.key)
+                }
+                const rkey = rectKey(rect);
+                if (removingRects[rkey]) {
+                    delete removingRects[rkey];
+                } else {
+                    const color = {
+                        'sport': 0xFF0000,
+                        'child': 0x00FF00,
+                        'relax': 0x0000ff
+                    }[rect.maf_kind];
+                    this.createPlaceholder(
+                        rkey,
+                        new Vector3(...rect.position),
+                        new Vector3(...rect.size),
+                        color!,
+                        rect.weight * 10.0
+                    );
+                }
+            }
+
+            this.groupTiles.remove(...Object.values(removingRects));
+            this.groupMafs.remove(...Object.values(removingMafs));
+
+            // console.log('calc', calculation);
+        });
+    }
+
+    onMousePaint() {
+        // console.log('paint', this.brash, 'tile', this.tile.toArray(), 'cursor', this.cursor.toArray());
         if (this.brash == null) {
             return;
         }
@@ -284,50 +375,43 @@ export class View {
             'relax': 3
         };
 
-        const [x, y] = this.tile.toArray();
-        if (y < this.shapeMatrix.length && y >= 0) {
-            if (x < this.shapeMatrix.length && x >= 0) {
-                this.shapeMatrix[y][x] = brashMapping[this.brash];
-            }
-        }
+        for (let oy = -this.cursorRadius; oy <= this.cursorRadius; oy++) {
+            for (let ox = -this.cursorRadius; ox <= this.cursorRadius; ox++) {
+                let [x, y] = this.tile.toArray();
+                x += ox;
+                y += oy;
+                if (y < this.shapeMatrix.length && y >= 0) {
+                    if (x < this.shapeMatrix[y].length && x >= 0) {
+                        const marker = brashMapping[this.brash];
+                        if (this.shapeMatrix[y][x] == marker) {
+                            continue;
+                        }
+                        this.shapeMatrix[y][x] = marker;
 
-        calculateProject(this.project, this.shapeMatrix).then(calculation => {
-            for (const rect of calculation.sport) {
-                this.createPlaceholder(
-                    new Vector3(...rect.position),
-                    new Vector3(...rect.size),
-                    0xff0000,
-                    rect.weight * 10.0
-                );
-            }
-            for (const rect of calculation.child) {
-                if (rect.maf != null && rect.maf.model != "") {
-                    this.createMaf(
-                        new Vector3(...rect.position),
-                        new Vector3(...rect.size),
-                        rect.maf.model,
-                        rect.maf_rotation
-                    )
-                } else if (rect.maf != null) {
-                    console.log('MAF not implemented', rect.maf?.key)
+                        let current: Record<string, any> = {};
+                        for (let mesh of this.groupTiles.children) {
+                            current[mesh.userData.key] = mesh;
+                        }
+
+                        const key = tileKey(this.brash, x, y);
+
+                        if (current[key]) {
+
+                        } else {
+                            const colors = [
+                                0x000000,
+                                0xFF0000,
+                                0x00FF00,
+                                0x0000ff
+                            ];
+                            this.createTile(key, new Vector3(x, y), colors[marker]);
+                        }
+                        this.calculate();
+                    }
                 }
-                this.createPlaceholder(
-                    new Vector3(...rect.position),
-                    new Vector3(...rect.size),
-                    0x00ff00,
-                    rect.weight * 10.0
-                );
             }
-            for (const rect of calculation.relax) {
-                this.createPlaceholder(
-                    new Vector3(...rect.position),
-                    new Vector3(...rect.size),
-                    0x0000ff,
-                    rect.weight * 10.0
-                );
-            }
-            console.log('calc', calculation);
-        })
+
+        }
     }
 
     toTile(position: Vector3): Vector2 {
@@ -357,6 +441,8 @@ export class View {
     }
 
     render() {
+        this.cursorMesh.scale.x = 1.0 + this.cursorRadius * 2;
+        this.cursorMesh.scale.y = 1.0 + this.cursorRadius * 2;
         this.light.shadow.camera.updateProjectionMatrix();
     }
 }
@@ -445,4 +531,28 @@ function createCenterMatrix(center: LngLatLike): Matrix4 {
         .multiply(rotationX)
         .multiply(rotationY)
         .multiply(rotationZ);
+}
+
+function debounce<F extends Function>(func: F, timeout = 250): F {
+    let timer = -1;
+    let call = (...args: any[]) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            func(args);
+        }, timeout);
+    };
+    return call as any;
+}
+
+
+function rectKey(rect: Slot): string {
+    return `${rect.maf_kind}:${rect.position[0]},${rect.position[1]}:${rect.size[0]}x${rect.size[1]}`;
+}
+
+function mafKey(rect: Slot): string {
+    return `${rect.maf?.key}:${rect.position[0]},${rect.position[1]}:${rect.size[0]}x${rect.size[1]}`;
+}
+
+function tileKey(brash: string, x: number, y: number): string {
+    return `${brash}:${x},${y}`;
 }

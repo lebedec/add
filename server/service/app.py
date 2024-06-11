@@ -98,7 +98,7 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
     for marker in budget:
         budget[marker] = budget[marker] / total_cells * project.budget
 
-    calculation = {}
+    calculation = []
     for kind, marker in mapping.items():
         kind_budget = budget[marker]
         rectangles: list[Rect] = []
@@ -108,8 +108,8 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
             for x in range(0, w):
                 for y in range(0, h):
                     matrix[sy + y][sx + x] = 0
-            max_w = 10
-            max_h = 10
+            max_w = 11
+            max_h = 11
             if w > max_w or h > max_h:
                 w_segments = [max_w] * (w // max_w)
                 w_remainder = w % max_w
@@ -131,6 +131,7 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
                             weight=0.0,
                             distance=0.0,
                             budget=0.0,
+                            maf_kind=kind,
                             maf=None,
                             maf_budget=0.0,
                             maf_rotation=0.0
@@ -145,6 +146,7 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
                     weight=0.0,
                     distance=0.0,
                     budget=0.0,
+                    maf_kind=kind,
                     maf=None,
                     maf_budget=0.0,
                     maf_rotation=0.0
@@ -164,16 +166,6 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
                     primaries.append(rect)
                 else:
                     secondaries.append(rect)
-
-            # def find_secondary_index():
-            #     for index in range(1, len(rectangles)):
-            #         rect = rectangles[index]
-            #         if (1.0 - rect.area / largest.area) > primaries_max_diff:
-            #             return index
-            #     return len(rectangles)
-            # index = find_secondary_index()
-            # primaries = rectangles[:index]
-            # secondaries = rectangles[index:]
 
             primaries_area = sum(primary.area for primary in primaries)
             primaries_total_weight = primaries_area / total_area
@@ -205,11 +197,16 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
             for secondary in secondaries:
                 secondary.distance = find_closest_primary_distance(secondary)
 
-            secondaries_distance = sum(secondary.distance for secondary in secondaries)
-            # invert distance, closest rects gather higher weight
-            for secondary in secondaries:
-                secondary.distance = secondaries_distance - secondary.distance
-            secondaries_distance = sum(secondary.distance for secondary in secondaries)
+            if len(secondaries) == 0:
+                secondaries_distance = 0.0
+            elif len(secondaries) == 1:
+                secondaries_distance = secondaries[0].distance
+            else:
+                # invert distance, closest rects gather higher weight
+                secondaries_distance = sum(secondary.distance for secondary in secondaries)
+                for secondary in secondaries:
+                    secondary.distance = secondaries_distance - secondary.distance
+                secondaries_distance = sum(secondary.distance for secondary in secondaries)
 
             for secondary in secondaries:
                 weight_part = secondary.distance / secondaries_distance
@@ -226,7 +223,25 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
         catalog = [maf for maf in state.catalog if maf.category == kind]
         assign_mafs(rectangles, catalog)
 
-        calculation[kind] = rectangles
+        # add 1x1 rectangles
+        for y in range(len(matrix)):
+            row = matrix[y]
+            for x in range(len(row)):
+                if matrix[y][x] == marker:
+                    rectangles.append(Rect(
+                        id=len(rectangles),
+                        position=(x, y),
+                        size=(1, 1),
+                        weight=0.0,
+                        distance=0.0,
+                        budget=0.0,
+                        maf_kind=kind,
+                        maf=None,
+                        maf_budget=0.0,
+                        maf_rotation=0.0
+                    ))
+
+        calculation += rectangles
     return calculation
 
 

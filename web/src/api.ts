@@ -57,25 +57,20 @@ export async function generateProject(name: string, area: number[][]): Promise<T
     return await response.json()
 }
 
-interface Slot {
+export interface Slot {
     id: number,
     position: number[],
     size: number[],
     weight: number,
     distance: number,
     budget: number,
+    maf_kind: string,
     maf: null | Maf,
     maf_budget: number,
     maf_rotation: number
 }
 
-interface Calculation {
-    sport: Slot[],
-    child: Slot[],
-    relax: Slot[],
-}
-
-export async function calculateProject(name: string, matrix: number[][]): Promise<Calculation> {
+export async function calculateProject(name: string, matrix: number[][]): Promise<Slot[]> {
     const response = await fetch(`${baseUrl}/api/${user}/calculation`, {
         method: 'POST',
         headers: {

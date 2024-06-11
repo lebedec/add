@@ -47,11 +47,16 @@ class Project:
 
 def read_catalog() -> list[Maf]:
     catalog = []
-    with open(base_path + '/data/catalog.json') as catalog_file:
-        records = json.load(catalog_file)
-        for record in records:
-            maf = Maf(**record)
-            catalog.append(maf)
+    paths = [
+        '/data/catalog_child.json',
+        '/data/catalog_sport.json',
+    ]
+    for path in paths:
+        with open(base_path + path) as catalog_file:
+            records = json.load(catalog_file)
+            for record in records:
+                maf = Maf(**record)
+                catalog.append(maf)
     return catalog
 
 
@@ -211,6 +216,7 @@ class Rect:
     weight: float
     distance: float
     budget: float
+    maf_kind: str
     maf: Optional[Maf]
     maf_budget: float
     maf_rotation: float

@@ -38,7 +38,7 @@ def convert_data():
     transformer = pyproj.Transformer.from_proj(proj_6335000, 'epsg:4326')
     path = os.path.dirname(__file__)
 
-    areas_path = path + '/data/Перечень площадок с АСУ ОДС, ДКР коорд.csv'
+    areas_path = path + '/input/Перечень площадок с АСУ ОДС, ДКР коорд.csv'
     polygons = {}
     with open(areas_path) as areas_file:
         for line in areas_file.readlines()[1:]:
@@ -64,14 +64,14 @@ def convert_data():
                     'coordinates': [coordinates]
                 }
             }
-    polygons_path = path + '/result/polygons.json'
+    polygons_path = path + '/output/polygons.json'
     with open(polygons_path, 'w') as polygons_file:
         json.dump(polygons, polygons_file, indent=4)
 
 
 def parse_providers():
     path = os.path.dirname(__file__)
-    providers_path = path + '/data/Каталог 2024.tsv'
+    providers_path = path + '/input/Каталог 2024.tsv'
     providers_data = {}
     provider_costs = defaultdict(set)
     sizes_x = []
@@ -114,8 +114,8 @@ def parse_providers():
             provider['max_cost'] = max(provider_costs[name])
 
             if move_images:
-                src_folder = path + '/data/Каталог/картинки 2024/'
-                dest_folder = path + '/result/images/' + name
+                src_folder = path + '/input/Каталог/картинки 2024/'
+                dest_folder = path + '/output/images/' + name
                 os.makedirs(dest_folder, exist_ok=True)
                 img_src = src_folder + img_uid
                 ext = img_uid.split('.')[-1]
@@ -124,7 +124,7 @@ def parse_providers():
                 shutil.copy(img_src, img_dst)
 
 
-    providers_result = path + '/result/providers.json'
+    providers_result = path + '/output/providers.json'
     with open(providers_result, 'w') as providers_file:
         json.dump(providers_data, providers_file, indent=4, ensure_ascii=False)
     sizes_x = sorted(sizes_x)
