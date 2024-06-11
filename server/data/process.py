@@ -4,7 +4,7 @@ from collections import defaultdict
 import shutil
 
 import pyproj
-
+import shutil
 # примеры паттернов площадок https://leber.ru/ru/playgrounds
 
 provider_name = {
@@ -87,7 +87,6 @@ def parse_providers():
             code_name = values[9]
             maf_type = values[10]
 
-
             try:
                 maf_size = [int(v) for v in values[5].split('x')]
                 size_x, size_y, size_z = maf_size
@@ -95,7 +94,6 @@ def parse_providers():
                 sizes_y.append(size_y)
             except:
                 print('error', values[5])
-
 
             name = provider_name.get(code_name)
             if not name:
@@ -123,7 +121,6 @@ def parse_providers():
                 img_dst = dest_folder + '/' + dst_name
                 shutil.copy(img_src, img_dst)
 
-
     providers_result = path + '/output/providers.json'
     with open(providers_result, 'w') as providers_file:
         json.dump(providers_data, providers_file, indent=4, ensure_ascii=False)
@@ -135,6 +132,23 @@ def parse_providers():
     print(f'max: {max(sizes_x)}x{max(sizes_y)}')
 
 
+def move_images():
+    path = os.path.dirname(__file__)
+    catalogs = [
+        path + '/../service/data/catalog_child.json',
+        path + '/../service/data/catalog_sport.json',
+    ]
+    output = path + '/../../web/public/preview/'
+    for catalog in catalogs:
+        with open(catalog) as catalog_file:
+            catalog = json.load(catalog_file)
+            for maf in catalog:
+                img = maf['preview']
+                src = path + '/input/Каталог/картинки 2024/' + img
+                dst = output + img
+                shutil.copy(src, dst)
+
 
 if __name__ == '__main__':
-    parse_providers()
+    move_images()
+    # parse_providers()

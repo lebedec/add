@@ -5,6 +5,7 @@ from typing import Optional
 
 import shapely
 from blacksheep import Application, get, FromQuery, post, FromJSON
+from blacksheep.server.files import get_default_extensions
 from rodi import Container
 from shapely import Polygon, Point
 
@@ -15,10 +16,13 @@ dependencies.add_instance(Provider())
 
 app = Application(services=dependencies)
 
+extensions = get_default_extensions()
+extensions.add('.glb')
 app.serve_files(
     "web",
     index_document="index.html",
     fallback_document="index.html",
+    extensions=extensions
 )
 
 app.use_cors(
@@ -85,8 +89,8 @@ def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
     # randomize generation
     rxo = randint(0, atlas_w - int(area_w))
     ryo = randint(0, 32 - int(area_h))
-    rxo = 0
-    ryo = 0
+    # rxo = 0
+    # ryo = 0
     for y in range(0, min(atlas_h, int(area_h))):
         for x in range(0, min(atlas_w, int(area_w))):
             r, g, b, a = pixels[x + rxo, y + ryo + pattern_offset[pattern_key]]

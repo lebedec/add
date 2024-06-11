@@ -117,22 +117,31 @@ function Constructor(props: { state: State, map: Map, view: View }) {
         setBudget(target.budget);
         setTimeout(generate);
     }
+    const [catalogShown, setCatalogShown] = useState(false);
+    const [projectShown, setProjectShown] = useState(false);
 
     return <>
         <div className="header">
+            <button onClick={() => setProjectShown(!projectShown)}>Проект</button>
             Header {props.state.value} {project.name} {budget} руб.
             <select value={projectName} onChange={event => changeProject(event.target.value)}>
                 {props.state.projects.map(project =>
                     <option key={project.name} value={project.name}>{project.name}</option>
                 )}
             </select>
-
+            <button onClick={() => setCatalogShown(!catalogShown)}>Каталог</button>
+            <img height="38px"
+                 src="https://rpp.mos.ru/services/files/2024/03/19/7da68a6698224295aa19cc81c7c9e89a.png"/>
+            <img height="38px"
+                 src="https://rpp.mos.ru/services/files/2024/03/19/9e5f980741de4772b05530f5e9083491.png"/>
+            <img height="38px"
+                 src="https://i.moscow/build/img/logo_ltc.svg"/>
         </div>
-        <aside className={clsx("left", "open")}>
+        <aside className={clsx("left", projectShown && "open")}>
             <h2>{project.name}</h2>
             <label>
                 Бюджет
-                <input type="range" min={100000} max={10000000} value={budget} onChange={changeBudget} />
+                <input type="range" min={100000} max={10000000} value={budget} onChange={changeBudget}/>
                 {budget} руб.
             </label>
             <div className="ages">
@@ -144,7 +153,21 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                     </label>
                 )}
             </div>
-
+        </aside>
+        <aside className={clsx("right", catalogShown && "open")}>
+            <h2>Каталог</h2>
+            <div className="catalog">
+                {state.catalog.map(maf =>
+                    <div key={maf.key} className="maf">
+                        <img height={75} src={"preview/" + maf.preview} alt={maf.name} />
+                        <div>
+                            <div>{maf.name}</div>
+                            <div>{maf.provider} {maf.code} {maf.number}</div>
+                            <div><b>{maf.cost}</b></div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </aside>
         <div className="footer">
             <button onClick={generate}>💫Сгенерировать</button>

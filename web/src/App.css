@@ -77,3 +77,28 @@ button.active {
     display: flex;
     flex-direction: column;
 }
+
+.right {
+    position: fixed;
+    overflow: scroll;
+    right: 10px;
+    width: 500px;
+    bottom: 80px;
+    height: calc(100% - 160px);
+    background: rgba(26, 26, 26, 0.47);
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 1s ease-in-out;
+}
+
+.right.open {
+    transform: translateX(0%);
+}
+
+.maf {
+    background: white;
+    padding: 16px;
+    border-radius: 4px;
+    display: flex;
+    margin: 10px;
+}

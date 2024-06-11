@@ -36,7 +36,8 @@ export interface Project {
 
 export interface State {
     value: number,
-    projects: Project[]
+    projects: Project[],
+    catalog: Maf[]
 }
 
 export async function getServiceState(): Promise<State> {
