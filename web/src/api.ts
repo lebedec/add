@@ -30,7 +30,8 @@ export interface Project {
     geo_polygon: Polygon,
     bearing: number,
     pitch: number,
-    zoom: number
+    zoom: number,
+    age_groups: Record<string, number>
 }
 
 export interface State {
@@ -39,20 +40,20 @@ export interface State {
 }
 
 export async function getServiceState(): Promise<State> {
-    const response = await fetch(`${baseUrl}/api/${user}/hello`, {method: 'GET'});
+    const response = await fetch(`${baseUrl}/api/${user}/state`, {method: 'GET'});
     return await response.json();
 }
 
 type Tile = [[number, number], string];
 
-export async function generateProject(name: string, area: number[][]): Promise<Tile[]> {
+export async function generateProject(name: string, area: number[][], age_groups: any): Promise<Tile[]> {
     const response = await fetch(`${baseUrl}/api/${user}/generation`, {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name, area })
+        body: JSON.stringify({ name, area, age_groups })
     })
     return await response.json()
 }
@@ -70,14 +71,14 @@ export interface Slot {
     maf_rotation: number
 }
 
-export async function calculateProject(name: string, matrix: number[][]): Promise<Slot[]> {
+export async function calculateProject(name: string, matrix: number[][], budget: number): Promise<Slot[]> {
     const response = await fetch(`${baseUrl}/api/${user}/calculation`, {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name, matrix })
+        body: JSON.stringify({ name, matrix, budget })
     })
     return await response.json()
 }

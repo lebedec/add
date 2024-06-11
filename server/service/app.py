@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from random import random, randint
 from typing import Optional
 
 import shapely
@@ -28,7 +29,7 @@ app.use_cors(
 )
 
 
-@get("/api/{user}/hello")
+@get("/api/{user}/state")
 def home(user: str, provider: Provider):
     model = provider.get_state(user)
     model.value += 1
@@ -39,6 +40,7 @@ def home(user: str, provider: Provider):
 class GenerationData:
     name: str
     area: list[list[float]]
+    age_groups: dict[str, int]
 
 
 @post("/api/{user}/generation")
@@ -46,18 +48,52 @@ def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
     model = provider.get_state(user)
     patterns = provider.get_patterns()
     project = model.get_project(data.value.name)
+    ages = data.value.age_groups
+    total = sum(value for value in ages.values())
+    total = sum([
+        ages['1Д'],
+        ages['2Д'],
+        ages['3Д'],
+        ages['4В'],
+        ages['5В'],
+        ages['6В'],
+    ])
+    child = (ages['1Д'] + ages['2Д']) / total
+    sport = (ages['3Д'] + ages['4В']) / total
+    relax = (ages['5В'] + ages['6В']) / total
+    pattern_key = ''
+    pattern_key += '1' if sport > 0.3 else '0'
+    pattern_key += '1' if child > 0.3 else '0'
+    pattern_key += '1' if relax > 0.3 else '0'
+    # print('generate for', ages, sport, child, relax, pattern_key)
+    pattern_offset = {
+        '000': 0,
+        '100': 32,
+        '110': 64,
+        '101': 96,
+        '001': 128,
+        '011': 160,
+        '010': 192,
+        '111': 224,
+    }
     area = Polygon(data.value.area)
-    ax, ay, aw, ah = area.bounds
+    ax, ay, area_w, area_h = area.bounds
     data = []
-    w, h = patterns.size
+    atlas_w, atlas_h = patterns.size
     pixels = patterns.load()
-    for y in range(0, min(w, int(ah))):
-        for x in range(0, min(h, int(aw))):
-            if pixels[x, y] == (255, 255, 255, 255):
+    # print('w', area_w, atlas_w - area_w, 'h', area_h, 32 - area_h)
+    # randomize generation
+    rxo = randint(0, atlas_w - int(area_w))
+    ryo = randint(0, 32 - int(area_h))
+    rxo = 0
+    ryo = 0
+    for y in range(0, min(atlas_h, int(area_h))):
+        for x in range(0, min(atlas_w, int(area_w))):
+            r, g, b, a = pixels[x + rxo, y + ryo + pattern_offset[pattern_key]]
+            if (r, g, b, a) == (255, 255, 255, 255):
                 continue
             if not area.contains(Point(x + 0.25, y + 0.25)):
                 continue
-            r, g, b, a = pixels[x, y]
             tile = 'child'
             if r == 255:
                 tile = 'sport'
@@ -71,6 +107,7 @@ def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
 class CalculationData:
     name: str
     matrix: list[list[int]]
+    budget: int
 
 
 @post("/api/{user}/calculation")
@@ -89,14 +126,20 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
         2: 0,
         3: 0
     }
+    budget_total = data.value.budget
+    # print('calculate for budget', budget_total)
     total_cells = 0
     for row in data.value.matrix:
         for cell in row:
             if cell in budget:
                 budget[cell] += 1
                 total_cells += 1
+
+    if total_cells == 0:
+        return []
+
     for marker in budget:
-        budget[marker] = budget[marker] / total_cells * project.budget
+        budget[marker] = budget[marker] / total_cells * budget_total
 
     calculation = []
     for kind, marker in mapping.items():
@@ -212,12 +255,6 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
                 weight_part = secondary.distance / secondaries_distance
                 secondary.weight = secondaries_total_weight * weight_part
                 secondary.budget = int(kind_budget * secondary.weight)
-
-            # print('count', len(rectangles), 'primary', len(primaries), 'second', len(secondaries))
-            # sum_budget = sum(rect.budget for rect in rectangles)
-            # print('budget', project.budget, 'kind', kind_budget, 'control', sum_budget)
-            # sum_weight = sum(rect.weight for rect in rectangles)
-            # print('weight', 1.0, 'primary', primaries_total_weight, 'second', secondaries_total_weight, 'control', sum_weight)
 
         # assignment
         catalog = [maf for maf in state.catalog if maf.category == kind]

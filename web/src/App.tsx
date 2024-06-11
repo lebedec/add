@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react'
 import './App.css'
-import {generateProject, getServiceState, Project, State} from "./api.ts";
+import {getServiceState, Project, State} from "./api.ts";
 import {GeoJSONSource, LngLatLike, Map} from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {Brash, View, ViewLayer} from "./view.ts";
@@ -35,6 +35,22 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     }
     const [projectName, setProjectName] = useState(preset.name);
     const project = projects[projectName];
+
+    const [ages, setAges] = useState(preset.age_groups);
+    const changeAges = (group: string, e: any) => {
+        ages[group] = parseInt(e.target.value);
+        view.projectAges = ages;
+        setAges({...ages});
+        view.requestGeneration();
+    }
+    const [budget, setBudget] = useState(preset.budget);
+    const changeBudget = (e: any) => {
+        const value = parseInt(e.target.value);
+        view.projectBudget = value;
+        setBudget(value);
+        view.requestCalculation();
+    }
+
     const onKeyDown = useCallback((event: KeyboardEvent) => {
         if (event.key == ']') {
             const index = state.projects.findIndex(p => p.name == projectName);
@@ -72,20 +88,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     }
 
     const generate = () => {
-        console.log('generate', view.project);
-        generateProject(view.project, view.shapeTiles).then(tiles => {
-            view.eraseShapeMatrix();
-            for (let tile of tiles) {
-                const [[x, y], kind] = tile;
-                const marker = {
-                    'sport': 1,
-                    'child': 2,
-                    'relax': 3
-                }[kind];
-                view.shapeMatrix[y][x] = marker!;
-            }
-            view.calculateProject();
-        })
+        view.generateProject();
     };
     const changeProject = (name: string) => {
         setProjectName(name);
@@ -108,13 +111,16 @@ function Constructor(props: { state: State, map: Map, view: View }) {
         });
         view.setup(polygon.geometry);
         view.project = name;
-        console.log('change', view.project);
+        view.projectAges = target.age_groups;
+        view.projectBudget = target.budget;
+        setAges(target.age_groups);
+        setBudget(target.budget);
         setTimeout(generate);
     }
 
     return <>
         <div className="header">
-            Header {props.state.value} {project.name} {project.budget} руб.
+            Header {props.state.value} {project.name} {budget} руб.
             <select value={projectName} onChange={event => changeProject(event.target.value)}>
                 {props.state.projects.map(project =>
                     <option key={project.name} value={project.name}>{project.name}</option>
@@ -122,11 +128,30 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             </select>
 
         </div>
+        <aside className={clsx("left", "open")}>
+            <h2>{project.name}</h2>
+            <label>
+                Бюджет
+                <input type="range" min={100000} max={10000000} value={budget} onChange={changeBudget} />
+                {budget} руб.
+            </label>
+            <div className="ages">
+                {Object.keys(ages).map(key =>
+                    <label key={key}>
+                        {key}
+                        <input type="range" min={0} max={500} value={ages[key]} onChange={e => changeAges(key, e)}/>
+                        {ages[key]}
+                    </label>
+                )}
+            </div>
+
+        </aside>
         <div className="footer">
             <button onClick={generate}>💫Сгенерировать</button>
             <button onClick={erase}>❌Удалить</button>
             <div style={{height: '16px', border: "1px solid red"}}></div>
-            <input type="range" min={0} max={3} value={brashSize} onChange={event => changeBrashSize(parseInt(event.target.value))} />
+            <input type="range" min={0} max={3} value={brashSize}
+                   onChange={event => changeBrashSize(parseInt(event.target.value))}/>
             <button className={clsx({active: brash == 'sport'})} onClick={() => togglePen('sport')}>🖊️Спорт</button>
             <button className={clsx({active: brash == 'child'})} onClick={() => togglePen('child')}>🖊️Дети</button>
             <button className={clsx({active: brash == 'relax'})} onClick={() => togglePen('relax')}>🖊️Отдых</button>

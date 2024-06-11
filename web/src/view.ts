@@ -23,7 +23,8 @@ import {
     WebGLRenderer
 } from "three";
 import {Polygon, Position} from "geojson";
-import {calculateProject, Slot} from "./api.ts";
+import {calculateProject, generateProject, Slot} from "./api.ts";
+import * as turf from '@turf/turf'
 
 type ViewLoader = (scene: View) => void;
 
@@ -58,12 +59,15 @@ export class View {
     cursorActive = false;
     brash: Brash = null;
     project: string = '';
+    projectBudget = 0;
+    projectAges = {};
 
     groupMafs = new Group();
     groupTiles = new Group();
     groupGizmos = new Group();
 
-    calculate: () => void;
+    requestCalculation: () => void;
+    requestGeneration: () => void;
 
     constructor(map: Map, context: WebGLRenderingContext) {
         this.camera = new Camera();
@@ -109,7 +113,8 @@ export class View {
         this.scene.add(this.groupGizmos);
 
         this.cursorMesh = this.createCursor();
-        this.calculate = debounce(this.calculateProject.bind(this));
+        this.requestCalculation = debounce(this.calculateProject.bind(this));
+        this.requestGeneration = debounce(this.generateProject.bind(this));
     }
 
     async awake() {
@@ -302,13 +307,30 @@ export class View {
         this.cursorMesh.position.y = this.cursor.y;
     }
 
+    generateProject() {
+        console.log('generate', this.project);
+        generateProject(this.project, this.shapeTiles, this.projectAges).then(tiles => {
+            this.eraseShapeMatrix();
+            for (let tile of tiles) {
+                const [[x, y], kind] = tile;
+                const marker = {
+                    'sport': 1,
+                    'child': 2,
+                    'relax': 3
+                }[kind];
+                this.shapeMatrix[y][x] = marker!;
+            }
+            this.calculateProject();
+        })
+    }
+
     calculateProject() {
 
         // console.log('calculate', this.project, this.shapeMatrix);
 
         // this.erase();
 
-        calculateProject(this.project, this.shapeMatrix).then(calculation => {
+        calculateProject(this.project, this.shapeMatrix, this.projectBudget).then(calculation => {
 
             let removingMafs: Record<string, any> = {};
             for (let maf of this.groupMafs.children) {
@@ -382,10 +404,19 @@ export class View {
                 y += oy;
                 if (y < this.shapeMatrix.length && y >= 0) {
                     if (x < this.shapeMatrix[y].length && x >= 0) {
+
+                        const point = turf.point([x, y]);
+                        if (!(turf as any).booleanContains(turf.polygon([this.shapeTiles]), point)) {
+                            continue;
+                        }
+
                         const marker = brashMapping[this.brash];
                         if (this.shapeMatrix[y][x] == marker) {
                             continue;
                         }
+
+
+
                         this.shapeMatrix[y][x] = marker;
 
                         let current: Record<string, any> = {};
@@ -406,7 +437,7 @@ export class View {
                             ];
                             this.createTile(key, new Vector3(x, y), colors[marker]);
                         }
-                        this.calculate();
+                        this.requestCalculation();
                     }
                 }
             }
@@ -533,7 +564,7 @@ function createCenterMatrix(center: LngLatLike): Matrix4 {
         .multiply(rotationZ);
 }
 
-function debounce<F extends Function>(func: F, timeout = 250): F {
+export function debounce<F extends Function>(func: F, timeout = 250): F {
     let timer = -1;
     let call = (...args: any[]) => {
         clearTimeout(timer);
