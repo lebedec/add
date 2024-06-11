@@ -7,7 +7,7 @@ if (localStorage.getItem('user') == null) {
 
 const user = localStorage.getItem('user');
 
-const baseUrl = 'http://localhost:44777'
+const baseUrl = '.'
 
 export interface Maf {
     name: string,
