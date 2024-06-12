@@ -51,6 +51,7 @@ def read_catalog() -> list[Maf]:
     paths = [
         '/data/catalog_child.json',
         '/data/catalog_sport.json',
+        '/data/catalog_relax.json',
     ]
     for path in paths:
         with open(base_path + path) as catalog_file:

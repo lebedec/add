@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Диван парковый",
+    "key": "leber-lgdp-14",
+    "provider": "ЛЕБЕР",
+    "number": "3010306",
+    "code": "ЛГДП-14",
+    "category": "relax",
+    "cost": 10359.8,
+    "preview": "f474364d-dbed-4686-91d2-b62a69c77da5.jpeg",
+    "model": "leber-lgdp-14.glb",
+    "size": [2000, 745, 885],
+    "safe": [2000, 745],
+    "tiles": [2, 1]
+  },
+  {
+    "name": "Урна",
+    "key": "leber-lgud-18",
+    "provider": "ЛЕБЕР",
+    "number": "4010004",
+    "code": "ЛГУД-18",
+    "category": "relax",
+    "cost": 17418.01,
+    "preview": "b51d2a23-0038-4769-b820-96a434d53d6e.jpeg",
+    "model": "leber-lgud-18.glb",
+    "size": [400, 400, 500],
+    "safe": [400, 400],
+    "tiles": [1, 1]
+  }
+]

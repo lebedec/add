@@ -137,6 +137,9 @@ export class View {
         this.models['kpro-014.glb'] = await this.loadModel('./models/kpro-014.glb');
         this.models['kpro-022.glb'] = await this.loadModel('./models/kpro-022.glb');
         this.models['kpro-035.glb'] = await this.loadModel('./models/kpro-035.glb');
+        // relax
+        this.models['leber-lgud-18.glb'] = await this.loadModel('./models/leber-lgud-18.glb');
+        this.models['leber-lgdp-14.glb'] = await this.loadModel('./models/leber-lgdp-14.glb');
     }
 
     async loadModel(path: string): Promise<GLTF> {

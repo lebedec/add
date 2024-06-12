@@ -137,6 +137,7 @@ def move_images():
     catalogs = [
         path + '/../service/data/catalog_child.json',
         path + '/../service/data/catalog_sport.json',
+        path + '/../service/data/catalog_relax.json',
     ]
     output = path + '/../../web/public/preview/'
     for catalog in catalogs:
