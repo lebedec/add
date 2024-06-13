@@ -322,7 +322,7 @@ export class View {
     }
 
     generateProject() {
-        console.log('generate', this.project);
+        // console.log('generate', this.project);
         generateProject(this.project, this.shapeTiles, this.projectAges).then(tiles => {
             this.eraseShapeMatrix();
             for (let tile of tiles) {

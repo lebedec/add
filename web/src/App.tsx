@@ -13,10 +13,10 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     const projects: Record<string, Project> = {};
     state.projects.forEach(project => projects[project.name] = project);
 
+
     const [result, setResult] = useState<MafInstance[]>([]);
     const updateMafs = useCallback((mafs: MafInstance[]) => {
         setResult(mafs);
-        console.log('update mafs', mafs);
     }, []);
     let resultTotal = 0.0;
     result.forEach(maf => resultTotal += Math.floor(maf.maf.cost));
@@ -32,17 +32,46 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     const [brash, setBrash] = useState<Brash>(null);
     const togglePen = (value: Brash) => {
         if (value == brash || value == null) {
+            if (view.brash != null) {
+                const polygon = turf.polygon(project.geo_polygon.coordinates);
+                // const center = turf.centroid(polygon).geometry.coordinates as LngLatLike;
+                /*map.flyTo({
+                    center: center,
+                    zoom: project.zoom,
+                    curve: 0.9,
+                    maxDuration: 4000
+                });*/
+                map.fitBounds(turf.bbox(polygon) as any)
+            }
+
             setBrash(null);
             view.groupTiles.visible = false;
             view.brash = null;
+            map.zoomTo(project.zoom);
+
         } else {
+            if (view.brash == null) {
+                const polygon = turf.polygon(project.geo_polygon.coordinates);
+                const center = turf.centroid(polygon).geometry.coordinates as LngLatLike;
+                map.flyTo({
+                    center: center,
+                    zoom: project.zoom + 1.0,
+                    curve: 0.9,
+                    maxDuration: 4000
+                });
+
+            }
+
             setBrash(value);
             view.groupTiles.visible = true;
             view.brash = value;
+            //
+            // map.zoomTo(project.zoom + 2.0);
+
         }
     }
     const [projectName, setProjectName] = useState(preset.name);
-    // const _project = projects[projectName];
+    const project = projects[projectName];
 
     const [_ages, setAges] = useState(preset.age_groups);
     // const _changeAges = (group: string, e: any) => {
@@ -52,6 +81,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     //     view.requestGeneration();
     // }
     const [budget, setBudget] = useState(preset.budget);
+    const [budgetMax, setBudgetMax] = useState(preset.budget * 3);
     const changeBudget = (e: any) => {
         const value = parseInt(e.target.value);
         view.projectBudget = value;
@@ -60,13 +90,14 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     }
 
     const onKeyDown = useCallback((event: KeyboardEvent) => {
-        if (event.key == ']') {
+        if (event.key == 'ArrowLeft' || event.key == 'ArrowDown') {
             const index = state.projects.findIndex(p => p.name == projectName);
             if (index + 1 < state.projects.length) {
                 changeProject(state.projects[index + 1].name);
             }
         }
-        if (event.key == '[') {
+        // console.log(event.key, event.charCode, 'KEYDOW');
+        if (event.key == 'ArrowRight' || event.key == 'ArrowUp') {
             const index = state.projects.findIndex(p => p.name == projectName);
             if (index > 0) {
                 changeProject(state.projects[index - 1].name);
@@ -75,6 +106,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     }, [projectName]);
     useEffect(() => {
         document.addEventListener('keydown', onKeyDown);
+        document.getElementById('map-container')!.focus();
         return () => {
             document.removeEventListener('keydown', onKeyDown);
         };
@@ -99,6 +131,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
         view.generateProject();
     };
     const changeProject = (name: string) => {
+        togglePen(null);
         setProjectName(name);
         const target = projects[name];
         const polygon = turf.polygon(target.geo_polygon.coordinates);
@@ -117,12 +150,15 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             geometry: target.geo_polygon,
             properties: []
         });
+
         view.setup(polygon.geometry);
         view.project = name;
         view.projectAges = target.age_groups;
         view.projectBudget = target.budget;
         setAges(target.age_groups);
         setBudget(target.budget);
+        setBudgetMax(target.budget * 3);
+
         setTimeout(generate);
     }
     const [catalogShown, setCatalogShown] = useState(false);
@@ -151,7 +187,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             <div>
                 <label>
                     Бюджет
-                    <input type="range" min={100000} max={10000000} value={budget} onChange={changeBudget}/>
+                    <input type="range" min={50000} max={budgetMax} value={budget} onChange={changeBudget}/>
                     {budget} руб.
                 </label>
             </div>
@@ -177,7 +213,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                         <tr key={id} className="maf-row">
                             <td>{maf.number}</td>
                             <td>{maf.name}</td>
-                            <td>{maf.provider}</td>
+                            <td>{maf.provider} {maf.code}</td>
                             <td>{Math.floor(maf.cost)}</td>
                         </tr>
                     )}
@@ -241,7 +277,6 @@ async function createMap(): Promise<Map> {
         attributionControl: false,
         antialias: true,
         maxPitch: 50.0,
-        dragPan: false,
         doubleClickZoom: false,
 
         projection: {
@@ -250,8 +285,8 @@ async function createMap(): Promise<Map> {
     });
     map.touchZoomRotate.disableRotation();
     map.touchZoomRotate.disable();
-    map.touchPitch.disable();
-    // map.zoom.enable();
+    map.touchPitch.enable();
+    map.keyboard.disable();
     map.dragPan.disable();
     (map as any).transform._fov = 0.4;
     return new Promise(resolve => {
@@ -267,16 +302,16 @@ async function createMap(): Promise<Map> {
                     properties: []
                 }
             });
-            map.addLayer({
-                'id': 'geo_polygon',
-                'type': 'fill',
-                'source': 'geo_polygon',
-                'layout': {},
-                'paint': {
-                    'fill-color': '#0080ff',
-                    'fill-opacity': 0.45
-                }
-            });
+            // map.addLayer({
+            //     'id': 'geo_polygon',
+            //     'type': 'fill',
+            //     'source': 'geo_polygon',
+            //     'layout': {},
+            //     'paint': {
+            //         'fill-color': '#0080ff',
+            //         'fill-opacity': 0.45
+            //     }
+            // });
             resolve(map);
         });
     })

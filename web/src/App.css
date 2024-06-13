@@ -165,3 +165,16 @@ button.active {
     display: flex;
     margin: 10px;
 }
+
+
+.mapboxgl-canvas {
+    outline: none;
+    /*outline: 1px solid #5267C8;*/
+    border: 1px solid #EAEBEB;
+    border-radius: 16px;
+    box-sizing: border-box;
+}
+
+.mapboxgl-ctrl-logo {
+    opacity: 1%;
+}

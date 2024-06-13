@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from random import random, randint
+from random import random, randint, choice
 from typing import Optional
 
 import shapely
@@ -92,7 +92,7 @@ def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
     rxo = 0
     ryo = 0
     pattern_offset = pattern_offset[pattern_key]
-    pattern_offset = 32
+    pattern_offset = 160
     for y in range(0, min(atlas_h, int(area_h))):
         for x in range(0, min(atlas_w, int(area_w))):
             r, g, b, a = pixels[x + rxo, y + ryo + pattern_offset]
@@ -269,13 +269,15 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
                 secondary.budget = int(kind_budget * secondary.weight)
 
             rotation_centers = []
+            randomize = True
             if kind == 'relax':
                 rotation_centers = last_primaries
                 if len(primaries) / len(rectangles) < 0.25:
                     rotation_centers += primaries
+                randomize = False
             # assignment
             catalog = [maf for maf in state.catalog if maf.category == kind]
-            assign_mafs(rectangles, catalog, rotation_centers)
+            assign_mafs(rectangles, catalog, rotation_centers, randomize)
             last_primaries = primaries
 
         # add 1x1 rectangles
@@ -300,7 +302,7 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
     return calculation
 
 
-def assign_mafs(rectangles: list[Rect], catalog: list[Maf], rotation_centers: list[Rect]):
+def assign_mafs(rectangles: list[Rect], catalog: list[Maf], rotation_centers: list[Rect], randomize=True):
     catalog = list(sorted(catalog, key=lambda maf: maf.cost))
 
     def find_maf_variants(budget: float, size: tuple[int, int]) -> list[tuple[Maf, bool, float]]:
@@ -342,7 +344,11 @@ def assign_mafs(rectangles: list[Rect], catalog: list[Maf], rotation_centers: li
 
             variants = list(sorted(variants, key=lambda variant: get_variant_aspect(variant)))
             # best aspect ratio match
-            maf, rotated, rotation = variants[-1]
+            if randomize:
+                best_variant = choice(variants[-3:])
+            else:
+                best_variant = variants[-1]
+            maf, rotated, rotation = best_variant
 
             if rotation_centers:
                 def find_closest_center(rect: Rect) -> Optional[Point]:
