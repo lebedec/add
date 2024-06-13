@@ -23,7 +23,7 @@ import {
     WebGLRenderer
 } from "three";
 import {Polygon, Position} from "geojson";
-import {calculateProject, generateProject, Maf, Slot} from "./api.ts";
+import { calculateProject, generateProject, Maf, Slot} from "./api.ts";
 import * as turf from '@turf/turf'
 
 type ViewLoader = (scene: View) => void;
@@ -65,6 +65,7 @@ export class View {
     brash: Brash = null;
     project: string = '';
     projectBudget = 0;
+    projectProviders: string[] = [];
     projectAges = {};
 
     groupMafs = new Group();
@@ -145,6 +146,8 @@ export class View {
         this.models['kpro-014.glb'] = await this.loadModel('./models/kpro-014.glb');
         this.models['kpro-022.glb'] = await this.loadModel('./models/kpro-022.glb');
         this.models['kpro-035.glb'] = await this.loadModel('./models/kpro-035.glb');
+        this.models['kpro-023.glb'] = await this.loadModel('./models/kpro-023.glb');
+        this.models['kpro-016.glb'] = await this.loadModel('./models/kpro-016.glb');
         // relax
         this.models['leber-lgud-18.glb'] = await this.loadModel('./models/leber-lgud-18.glb');
         this.models['leber-lgdp-14.glb'] = await this.loadModel('./models/leber-lgdp-14.glb');
@@ -323,7 +326,7 @@ export class View {
 
     generateProject() {
         // console.log('generate', this.project);
-        generateProject(this.project, this.shapeTiles, this.projectAges).then(tiles => {
+        generateProject(this.project, this.shapeTiles, this.projectAges as any).then(tiles => {
             this.eraseShapeMatrix();
             for (let tile of tiles) {
                 const [[x, y], kind] = tile;
@@ -344,7 +347,7 @@ export class View {
 
         // this.erase();
 
-        calculateProject(this.project, this.shapeMatrix, this.projectBudget).then(calculation => {
+        calculateProject(this.project, this.shapeMatrix, this.projectBudget, this.projectProviders).then(calculation => {
 
             let removingMafs: Record<string, any> = {};
             for (let maf of this.groupMafs.children) {

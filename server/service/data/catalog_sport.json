@@ -1,5 +1,36 @@
 [
   {
+    "name": "Треугольник",
+    "key": "kpro-016",
+    "provider": "KENGURUPRO",
+    "number": "2150075",
+    "code": "KPRO-016",
+    "category": "sport",
+    "cost": 59819.41,
+    "preview": "3dbe7eba-a813-4071-9279-26394352c696.jpeg",
+    "model": "kpro-016.glb",
+    "size": [1416, 1241, 2650],
+    "safe": [4416, 4416],
+    "tiles": [3, 3]
+  },
+
+  {
+    "name": "Скамья на пресс",
+    "key": "kpro-023",
+    "provider": "KENGURUPRO",
+    "number": "2150080",
+    "code": "KPRO-023",
+    "category": "sport",
+    "cost": 66373.04,
+    "preview": "4aa63c87-6731-49df-988a-834b32f1e9ff.jpeg",
+    "model": "kpro-023.glb",
+    "size": [1446, 716, 1550],
+    "safe": [3819, 2716],
+    "tiles": [4, 3]
+  },
+
+
+  {
     "name": "Брусья гнутые двойные",
     "key": "kpro-018",
     "provider": "KENGURUPRO",

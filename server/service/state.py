@@ -43,7 +43,7 @@ class Project:
     bearing: float
     pitch: float
     zoom: float
-    age_groups: dict
+    age_groups: dict[str, bool]
 
 
 def read_catalog() -> list[Maf]:
@@ -67,6 +67,7 @@ class State:
     value: int
     projects: list[Project]
     catalog: list[Maf]
+    providers: list[str]
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -92,9 +93,11 @@ class Provider:
 
     def get_state(self, user: str) -> State:
         if user not in self.users:
+            providers = {}
             self.users[user] = State(
                 value=42,
                 catalog=read_catalog(),
+                providers=['ЛЕБЕР', 'KENGURUPRO'],
                 projects=[
                     Project(
                         name='Осенний бульвар 10к2',
@@ -109,17 +112,14 @@ class Provider:
                         pitch=48,
                         zoom=18.0,
                         age_groups={
-                            '1Д': 57,  # 0-7 лет
-                            '2Д': 89,  # 8-12 лет
-                            '3Д': 104,  # 13-18 лет
-                            '4В': 114,  # 19-30 лет
-                            '5В': 432,  # 31-55 лет
-                            '6В': 431,  # 56+ лет
+                            'sport': False,
+                            'child': True,
+                            'relax': True
                         }
                     ),
                     Project(
                         name='Осенний бульвар 2',
-                        budget=315_000,
+                        budget=650_000,
                         geo_polygon=as_geo(Polygon([
                             [37.40959399215026, 55.75294214720114],
                             [37.409836462281106, 55.75294462373509],
@@ -132,12 +132,9 @@ class Provider:
                         pitch=50,
                         zoom=18.76,
                         age_groups={
-                            '1Д': 23,
-                            '2Д': 26,
-                            '3Д': 52,
-                            '4В': 55,
-                            '5В': 232,
-                            '6В': 228
+                            'sport': False,
+                            'child': True,
+                            'relax': True
                         }
                     ),
                     Project(
@@ -155,12 +152,9 @@ class Provider:
                         pitch=45.5,
                         zoom=19.26,
                         age_groups={
-                            '1Д': 23,
-                            '2Д': 26,
-                            '3Д': 52,
-                            '4В': 55,
-                            '5В': 232,
-                            '6В': 228
+                            'sport': False,
+                            'child': True,
+                            'relax': True
                         }
                     ),
                     Project(
@@ -192,12 +186,9 @@ class Provider:
                         pitch=42.5,
                         zoom=18.75,
                         age_groups={
-                            '1Д': 57,
-                            '2Д': 89,
-                            '3Д': 104,
-                            '4В': 114,
-                            '5В': 432,
-                            '6В': 431
+                            'sport': False,
+                            'child': True,
+                            'relax': True
                         }
                     ),
                     Project(
@@ -212,12 +203,9 @@ class Provider:
                         pitch=37.5,
                         zoom=18,
                         age_groups={
-                            '1Д': 57,
-                            '2Д': 89,
-                            '3Д': 104,
-                            '4В': 114,
-                            '5В': 432,
-                            '6В': 431
+                            'sport': False,
+                            'child': True,
+                            'relax': True
                         }
                     ),
                 ]

@@ -24,6 +24,12 @@ export interface Maf {
     tiles: number[]
 }
 
+export interface AgeGroups {
+    sport: boolean,
+    child: boolean,
+    relax: boolean
+}
+
 export interface Project {
     name: string,
     budget: number,
@@ -31,13 +37,14 @@ export interface Project {
     bearing: number,
     pitch: number,
     zoom: number,
-    age_groups: Record<string, number>
+    age_groups:AgeGroups
 }
 
 export interface State {
     value: number,
     projects: Project[],
-    catalog: Maf[]
+    catalog: Maf[],
+    providers: string[]
 }
 
 export async function getServiceState(): Promise<State> {
@@ -47,14 +54,14 @@ export async function getServiceState(): Promise<State> {
 
 type Tile = [[number, number], string];
 
-export async function generateProject(name: string, area: number[][], age_groups: any): Promise<Tile[]> {
+export async function generateProject(name: string, area: number[][], age_groups: AgeGroups): Promise<Tile[]> {
     const response = await fetch(`${baseUrl}/api/${user}/generation`, {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name, area, age_groups })
+        body: JSON.stringify({name, area, age_groups})
     })
     return await response.json()
 }
@@ -72,14 +79,14 @@ export interface Slot {
     maf_rotation: number
 }
 
-export async function calculateProject(name: string, matrix: number[][], budget: number): Promise<Slot[]> {
+export async function calculateProject(name: string, matrix: number[][], budget: number, providers: string[]): Promise<Slot[]> {
     const response = await fetch(`${baseUrl}/api/${user}/calculation`, {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name, matrix, budget })
+        body: JSON.stringify({name, matrix, budget, providers})
     })
     return await response.json()
 }

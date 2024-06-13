@@ -1,11 +1,14 @@
 import {useCallback, useEffect, useState} from 'react'
 import './App.css'
-import {getServiceState, Project, State} from "./api.ts";
+import {AgeGroups, getServiceState, Project, State} from "./api.ts";
 import {GeoJSONSource, LngLatLike, Map} from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {Brash, MafInstance, View, ViewLayer} from "./view.ts";
 import * as turf from '@turf/turf'
 import clsx from "clsx";
+
+const fNumber = Intl.NumberFormat('ru-RU');
+const fMoney = Intl.NumberFormat('ru-RU', {style: 'currency', currency: 'RUB'});
 
 function Constructor(props: { state: State, map: Map, view: View }) {
     const {state, map, view} = props;
@@ -14,6 +17,25 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     state.projects.forEach(project => projects[project.name] = project);
 
 
+    const [providers, setProviders] = useState([...view.projectProviders]);
+    const toggleProvider = (value: string) => {
+        let index = providers.indexOf(value);
+        if (index != -1) {
+            console.log('remove', value);
+            providers.splice(index, 1);
+            setProviders([...providers])
+            view.projectProviders = [...providers];
+        } else {
+            console.log('append', value);
+            setProviders([value, ...providers])
+            view.projectProviders = [value, ...providers];
+        }
+    }
+    console.log('prov', providers);
+    const hasProvider = (value: string) => {
+        console.log('hash', value, providers.indexOf(value) != -1);
+        return providers.indexOf(value) != -1;
+    }
     const [result, setResult] = useState<MafInstance[]>([]);
     const updateMafs = useCallback((mafs: MafInstance[]) => {
         setResult(mafs);
@@ -73,13 +95,13 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     const [projectName, setProjectName] = useState(preset.name);
     const project = projects[projectName];
 
-    const [_ages, setAges] = useState(preset.age_groups);
-    // const _changeAges = (group: string, e: any) => {
-    //     ages[group] = parseInt(e.target.value);
-    //     view.projectAges = ages;
-    //     setAges({...ages});
-    //     view.requestGeneration();
-    // }
+    const [ages, setAges] = useState<AgeGroups>(preset.age_groups);
+    const changeAges = (group: string, value: boolean) => {
+        (ages as any)[group] = value;
+        view.projectAges = ages;
+        setAges({...ages});
+        view.requestGeneration();
+    }
     const [budget, setBudget] = useState(preset.budget);
     const [budgetMax, setBudgetMax] = useState(preset.budget * 3);
     const changeBudget = (e: any) => {
@@ -151,10 +173,14 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             properties: []
         });
 
+        let providers = ['ЛЕБЕР', 'KENGURUPRO'];
+
         view.setup(polygon.geometry);
         view.project = name;
         view.projectAges = target.age_groups;
         view.projectBudget = target.budget;
+        view.projectProviders = providers;
+        setProviders(providers);
         setAges(target.age_groups);
         setBudget(target.budget);
         setBudgetMax(target.budget * 3);
@@ -169,9 +195,9 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             <img src="/icon.svg"/>
             <h1>Агентство дворовых дел</h1>
             <div className="spacer"/>
-            <div key={resultTotal} className="budget-value">{resultTotal}</div>
+            <div key={resultTotal} className="budget-value">{fNumber.format(resultTotal)}</div>
 
-            / {budget} руб.
+            / {fNumber.format(budget)} руб.
             <select value={projectName} onChange={event => changeProject(event.target.value)}>
                 {props.state.projects.map(project =>
                     <option key={project.name} value={project.name}>{project.name}</option>
@@ -188,16 +214,13 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                 <label>
                     Бюджет
                     <input type="range" min={50000} max={budgetMax} value={budget} onChange={changeBudget}/>
-                    {budget} руб.
+                    {fNumber.format(budget)} руб.
                 </label>
             </div>
-            <div>
-                <label>
-                    Спортивная/Детская
-                    <input type="range"/>
-                    %
-                </label>
-            </div>
+
+            <button onClick={() => setProjectShown(!projectShown)}>Дворовая территория</button>
+
+
             <div className={clsx("table-container", projectShown && "tableShown")}>
                 <table>
                     <thead>
@@ -233,31 +256,66 @@ function Constructor(props: { state: State, map: Map, view: View }) {
         </aside>
         <aside className={clsx("right", catalogShown && "open")}>
             <h2>Каталог</h2>
+            <div className="providersBar">
+                <h3>Поставщики</h3>
+                <div className="providers">
+                    {state.providers.map(name =>
+                        <span
+                            key={name}
+                            className={clsx("providerLabel", hasProvider(name) && "active")}
+                            onClick={() => toggleProvider(name)}
+                        >
+                            {name}
+                        </span>
+                    )}
+                </div>
+            </div>
             <div className="catalog">
-                {state.catalog.map(maf =>
+                {state.catalog.filter(maf => providers.includes(maf.provider)).map(maf =>
                     <div key={maf.key} className="maf">
-                        <img height={75} src={"preview/" + maf.preview} alt={maf.name}/>
-                        <div>
-                            <div>{maf.name}</div>
-                            <div>{maf.provider} {maf.code} {maf.number}</div>
-                            <div><b>{maf.cost}</b></div>
+                        <img className="preview" src={"preview/" + maf.preview} alt={maf.name}/>
+                        <div className="card">
+                            <div className="title">{maf.name}</div>
+                            <div className="codes">{maf.provider} {maf.code} {maf.number}</div>
+                            <div className="spacer" />
+                            <div className="cost">{fMoney.format(maf.cost)}</div>
                         </div>
                     </div>
                 )}
             </div>
         </aside>
         <div className="footer">
-            <button onClick={() => setProjectShown(!projectShown)}>Дворовая территория</button>
-            <button onClick={generate}>💫Сгенерировать</button>
+
+            <button onClick={() => setCatalogShown(!catalogShown)}>Каталог</button>
             <button onClick={erase}>❌Очистить</button>
-            <div style={{height: '16px', border: "1px solid red"}}></div>
             <input type="range" min={0} max={3} value={brashSize}
                    onChange={event => changeBrashSize(parseInt(event.target.value))}/>
             <button className={clsx({active: brash == 'sport'})} onClick={() => togglePen('sport')}>🖊️Спорт</button>
             <button className={clsx({active: brash == 'child'})} onClick={() => togglePen('child')}>🖊️Дети</button>
             <button className={clsx({active: brash == 'relax'})} onClick={() => togglePen('relax')}>🖊️Отдых</button>
             <button className={clsx({active: brash == 'erase'})} onClick={() => togglePen('erase')}>🧹Удалить</button>
-            <button onClick={() => setCatalogShown(!catalogShown)}>Каталог</button>
+
+            <div style={{height: '16px', border: "1px solid red"}}></div>
+            <button onClick={generate}>💫Сгенерировать</button>
+
+            <div className="sliders">
+                <div>Спорт</div>
+                <label className="switch">
+                    <input type="checkbox" checked={ages.sport} onChange={e => changeAges('sport', e.target.checked)}/>
+                    <span className="slider"></span>
+                </label>
+                <div>Дети</div>
+                <label className="switch">
+                    <input type="checkbox" checked={ages.child} onChange={e => changeAges('child', e.target.checked)}/>
+                    <span className="slider"></span>
+                </label>
+                <div>Отдых</div>
+                <label className="switch">
+                    <input type="checkbox" checked={ages.relax} onChange={e => changeAges('relax', e.target.checked)}/>
+                    <span className="slider"></span>
+                </label>
+            </div>
+
         </div>
     </>
 }

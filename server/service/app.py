@@ -44,7 +44,7 @@ def home(user: str, provider: Provider):
 class GenerationData:
     name: str
     area: list[list[float]]
-    age_groups: dict[str, int]
+    age_groups: dict[str, bool]
 
 
 @post("/api/{user}/generation")
@@ -53,23 +53,11 @@ def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
     patterns = provider.get_patterns()
     project = model.get_project(data.value.name)
     ages = data.value.age_groups
-    total = sum(value for value in ages.values())
-    total = sum([
-        ages['1Д'],
-        ages['2Д'],
-        ages['3Д'],
-        ages['4В'],
-        ages['5В'],
-        ages['6В'],
-    ])
-    child = (ages['1Д'] + ages['2Д']) / total
-    sport = (ages['3Д'] + ages['4В']) / total
-    relax = (ages['5В'] + ages['6В']) / total
     pattern_key = ''
-    pattern_key += '1' if sport > 0.3 else '0'
-    pattern_key += '1' if child > 0.3 else '0'
-    pattern_key += '1' if relax > 0.3 else '0'
-    # print('generate for', ages, sport, child, relax, pattern_key)
+    pattern_key += '1' if ages['sport'] else '0'
+    pattern_key += '1' if ages['child'] else '0'
+    pattern_key += '1' if ages['relax'] else '0'
+    print('generate for', ages, pattern_key)
     pattern_offset = {
         '000': 0,
         '100': 32,
@@ -92,7 +80,6 @@ def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
     rxo = 0
     ryo = 0
     pattern_offset = pattern_offset[pattern_key]
-    pattern_offset = 160
     for y in range(0, min(atlas_h, int(area_h))):
         for x in range(0, min(atlas_w, int(area_w))):
             r, g, b, a = pixels[x + rxo, y + ryo + pattern_offset]
@@ -114,6 +101,7 @@ class CalculationData:
     name: str
     matrix: list[list[int]]
     budget: int
+    providers: list[str]
 
 
 @post("/api/{user}/calculation")
@@ -133,6 +121,7 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
         3: 0
     }
     budget_total = data.value.budget
+    available_providers = data.value.providers
     # print('calculate for budget', budget_total)
     total_cells = 0
     for row in data.value.matrix:
@@ -272,11 +261,11 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
             randomize = True
             if kind == 'relax':
                 rotation_centers = last_primaries
-                if len(primaries) / len(rectangles) < 0.25:
-                    rotation_centers += primaries
+                # if len(primaries) / len(rectangles) < 0.25:
+                #     rotation_centers += primaries
                 randomize = False
             # assignment
-            catalog = [maf for maf in state.catalog if maf.category == kind]
+            catalog = [maf for maf in state.catalog if maf.category == kind and maf.provider in available_providers]
             assign_mafs(rectangles, catalog, rotation_centers, randomize)
             last_primaries = primaries
 
@@ -371,7 +360,6 @@ def assign_mafs(rectangles: list[Rect], catalog: list[Maf], rotation_centers: li
 
                 center = find_closest_center(rect)
                 if center:
-
                     if rotation == 90 and center.x < rect.position[0]:
                         rotation = -90
                     elif rotation == 0 and center.y < rect.position[1]:
