@@ -23,12 +23,17 @@ import {
     WebGLRenderer
 } from "three";
 import {Polygon, Position} from "geojson";
-import {calculateProject, generateProject, Slot} from "./api.ts";
+import {calculateProject, generateProject, Maf, Slot} from "./api.ts";
 import * as turf from '@turf/turf'
 
 type ViewLoader = (scene: View) => void;
 
 export type Brash = 'sport' | 'child' | 'relax' | 'erase' | null;
+
+export interface MafInstance {
+    id: number,
+    maf: Maf
+}
 
 export class View {
     camera: Camera;
@@ -68,6 +73,9 @@ export class View {
 
     requestCalculation: () => void;
     requestGeneration: () => void;
+
+    updateMafs: (mafs: MafInstance[]) => void = () => {};
+    counter: number = 0;
 
     constructor(map: Map, context: WebGLRenderingContext) {
         this.camera = new Camera();
@@ -206,7 +214,7 @@ export class View {
             transparent: false
         }));
         mesh.receiveShadow = true;
-        mesh.position.z = -0.1;
+        mesh.position.z = -0.1 - 0.05;
         this.groupGizmos.add(mesh);
     }
 
@@ -250,20 +258,23 @@ export class View {
         tile.x += size.x / 2.0 - 0.5;
         tile.y += size.y / 2.0 - 0.5;
         mesh.position.copy(this.toPosition(tile));
-        mesh.position.z = height / 2.0;
+        mesh.position.z = -height / 2.0;
         mesh.rotation.z = this.rotation;
         mesh.userData.key = key;
         this.groupTiles.add(mesh);
         return mesh;
     }
 
-    createMaf(key: string, tile: Vector3, size: Vector3, model: string, rotation: number) {
-        const mesh = this.models[model].scene.clone(true);
+    createMaf(key: string, tile: Vector3, size: Vector3, maf: Maf, rotation: number) {
+        this.counter += 1;
+        const mesh = this.models[maf.model].scene.clone(true);
         mesh.rotation.set(0, 0, this.rotation + rotation);
         tile.x += size.x / 2.0 - 0.5;
         tile.y += size.y / 2.0 - 0.5;
         mesh.position.copy(this.toPosition(tile));
         mesh.userData.key = key;
+        mesh.userData.maf = maf;
+        mesh.userData.mafId = this.counter;
         this.groupMafs.add(mesh);
     }
 
@@ -344,17 +355,26 @@ export class View {
                 removingRects[mesh.userData.key] = mesh;
             }
 
+            const result = [];
             for (const rect of calculation) {
                 if (rect.maf != null && rect.maf.model != "") {
                     const mkey = mafKey(rect);
                     if (removingMafs[mkey]) {
+                        result.push({
+                            id: removingMafs[mkey].userData.mafId,
+                            maf: removingMafs[mkey].userData.maf
+                        })
                         delete removingMafs[mkey]
                     } else {
+                        result.push({
+                            id: this.counter + 1,
+                            maf: rect.maf
+                        });
                         this.createMaf(
                             mkey,
                             new Vector3(...rect.position),
                             new Vector3(...rect.size),
-                            rect.maf.model,
+                            rect.maf,
                             rect.maf_rotation
                         )
                     }
@@ -379,6 +399,7 @@ export class View {
                     );
                 }
             }
+            this.updateMafs(result);
 
             this.groupTiles.remove(...Object.values(removingRects));
             this.groupMafs.remove(...Object.values(removingMafs));

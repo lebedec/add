@@ -3,7 +3,7 @@ import './App.css'
 import {getServiceState, Project, State} from "./api.ts";
 import {GeoJSONSource, LngLatLike, Map} from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import {Brash, View, ViewLayer} from "./view.ts";
+import {Brash, MafInstance, View, ViewLayer} from "./view.ts";
 import * as turf from '@turf/turf'
 import clsx from "clsx";
 
@@ -13,6 +13,14 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     const projects: Record<string, Project> = {};
     state.projects.forEach(project => projects[project.name] = project);
 
+    const [result, setResult] = useState<MafInstance[]>([]);
+    const updateMafs = useCallback((mafs: MafInstance[]) => {
+        setResult(mafs);
+        console.log('update mafs', mafs);
+    }, []);
+    let resultTotal = 0.0;
+    result.forEach(maf => resultTotal += Math.floor(maf.maf.cost));
+    view.updateMafs = updateMafs;
     useEffect(() => {
         changeProject(preset.name);
     }, [])
@@ -34,15 +42,15 @@ function Constructor(props: { state: State, map: Map, view: View }) {
         }
     }
     const [projectName, setProjectName] = useState(preset.name);
-    const project = projects[projectName];
+    // const _project = projects[projectName];
 
-    const [ages, setAges] = useState(preset.age_groups);
-    const changeAges = (group: string, e: any) => {
-        ages[group] = parseInt(e.target.value);
-        view.projectAges = ages;
-        setAges({...ages});
-        view.requestGeneration();
-    }
+    const [_ages, setAges] = useState(preset.age_groups);
+    // const _changeAges = (group: string, e: any) => {
+    //     ages[group] = parseInt(e.target.value);
+    //     view.projectAges = ages;
+    //     setAges({...ages});
+    //     view.requestGeneration();
+    // }
     const [budget, setBudget] = useState(preset.budget);
     const changeBudget = (e: any) => {
         const value = parseInt(e.target.value);
@@ -122,44 +130,77 @@ function Constructor(props: { state: State, map: Map, view: View }) {
 
     return <>
         <div className="header">
-            <button onClick={() => setProjectShown(!projectShown)}>Проект</button>
-            Header {props.state.value} {project.name} {budget} руб.
+            <img src="/icon.svg"/>
+            <h1>Агентство дворовых дел</h1>
+            <div className="spacer"/>
+            <div key={resultTotal} className="budget-value">{resultTotal}</div>
+
+            / {budget} руб.
             <select value={projectName} onChange={event => changeProject(event.target.value)}>
                 {props.state.projects.map(project =>
                     <option key={project.name} value={project.name}>{project.name}</option>
                 )}
             </select>
-            <button onClick={() => setCatalogShown(!catalogShown)}>Каталог</button>
-            <img height="38px"
+            <div className="spacer"/>
+            <img height="38px" className="invert" alt="лого капремонт"
                  src="https://rpp.mos.ru/services/files/2024/03/19/7da68a6698224295aa19cc81c7c9e89a.png"/>
-            <img height="38px"
+            <img height="38px" className="invert" alt="лого главконтроль"
                  src="https://rpp.mos.ru/services/files/2024/03/19/9e5f980741de4772b05530f5e9083491.png"/>
-            <img height="38px"
-                 src="https://i.moscow/build/img/logo_ltc.svg"/>
         </div>
         <aside className={clsx("left", projectShown && "open")}>
-            <h2>{project.name}</h2>
-            <label>
-                Бюджет
-                <input type="range" min={100000} max={10000000} value={budget} onChange={changeBudget}/>
-                {budget} руб.
-            </label>
-            <div className="ages">
-                {Object.keys(ages).map(key =>
-                    <label key={key}>
-                        {key}
-                        <input type="range" min={0} max={500} value={ages[key]} onChange={e => changeAges(key, e)}/>
-                        {ages[key]}
-                    </label>
-                )}
+            <div>
+                <label>
+                    Бюджет
+                    <input type="range" min={100000} max={10000000} value={budget} onChange={changeBudget}/>
+                    {budget} руб.
+                </label>
             </div>
+            <div>
+                <label>
+                    Спортивная/Детская
+                    <input type="range"/>
+                    %
+                </label>
+            </div>
+            <div className={clsx("table-container", projectShown && "tableShown")}>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Наименование</th>
+                        <th>Производитель</th>
+                        <th>Цена</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {result.map(({id, maf}) =>
+                        <tr key={id} className="maf-row">
+                            <td>{maf.number}</td>
+                            <td>{maf.name}</td>
+                            <td>{maf.provider}</td>
+                            <td>{Math.floor(maf.cost)}</td>
+                        </tr>
+                    )}
+                    </tbody>
+                </table>
+            </div>
+            <button>Скачать документы</button>
+            {/*<div className="ages">*/}
+            {/*    {Object.keys(ages).map(key =>*/}
+            {/*        <label key={key}>*/}
+            {/*            {key}*/}
+            {/*            <input type="range" min={0} max={500} value={ages[key]} onChange={e => changeAges(key, e)}/>*/}
+            {/*            {ages[key]}*/}
+            {/*        </label>*/}
+            {/*    )}*/}
+            {/*</div>*/}
         </aside>
         <aside className={clsx("right", catalogShown && "open")}>
             <h2>Каталог</h2>
             <div className="catalog">
                 {state.catalog.map(maf =>
                     <div key={maf.key} className="maf">
-                        <img height={75} src={"preview/" + maf.preview} alt={maf.name} />
+                        <img height={75} src={"preview/" + maf.preview} alt={maf.name}/>
                         <div>
                             <div>{maf.name}</div>
                             <div>{maf.provider} {maf.code} {maf.number}</div>
@@ -170,8 +211,9 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             </div>
         </aside>
         <div className="footer">
+            <button onClick={() => setProjectShown(!projectShown)}>Дворовая территория</button>
             <button onClick={generate}>💫Сгенерировать</button>
-            <button onClick={erase}>❌Удалить</button>
+            <button onClick={erase}>❌Очистить</button>
             <div style={{height: '16px', border: "1px solid red"}}></div>
             <input type="range" min={0} max={3} value={brashSize}
                    onChange={event => changeBrashSize(parseInt(event.target.value))}/>
@@ -179,7 +221,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             <button className={clsx({active: brash == 'child'})} onClick={() => togglePen('child')}>🖊️Дети</button>
             <button className={clsx({active: brash == 'relax'})} onClick={() => togglePen('relax')}>🖊️Отдых</button>
             <button className={clsx({active: brash == 'erase'})} onClick={() => togglePen('erase')}>🧹Удалить</button>
-
+            <button onClick={() => setCatalogShown(!catalogShown)}>Каталог</button>
         </div>
     </>
 }
@@ -282,5 +324,6 @@ function App() {
         <div id="map-container"/>
     </div>
 }
+
 
 export default App

@@ -89,11 +89,13 @@ def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
     # randomize generation
     rxo = randint(0, atlas_w - int(area_w))
     ryo = randint(0, 32 - int(area_h))
-    # rxo = 0
-    # ryo = 0
+    rxo = 0
+    ryo = 0
+    pattern_offset = pattern_offset[pattern_key]
+    pattern_offset = 32
     for y in range(0, min(atlas_h, int(area_h))):
         for x in range(0, min(atlas_w, int(area_w))):
-            r, g, b, a = pixels[x + rxo, y + ryo + pattern_offset[pattern_key]]
+            r, g, b, a = pixels[x + rxo, y + ryo + pattern_offset]
             if (r, g, b, a) == (255, 255, 255, 255):
                 continue
             if not area.contains(Point(x + 0.25, y + 0.25)):
@@ -146,7 +148,13 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
         budget[marker] = budget[marker] / total_cells * budget_total
 
     calculation = []
-    for kind, marker in mapping.items():
+    mapping_items = [
+        ('sport', 1),
+        ('child', 2),
+        ('relax', 3),
+    ]
+    last_primaries = []
+    for kind, marker in mapping_items:
         kind_budget = budget[marker]
         rectangles: list[Rect] = []
         while found := find_max_rectangles(matrix, marker, min_area=1):
@@ -260,9 +268,15 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
                 secondary.weight = secondaries_total_weight * weight_part
                 secondary.budget = int(kind_budget * secondary.weight)
 
-        # assignment
-        catalog = [maf for maf in state.catalog if maf.category == kind]
-        assign_mafs(rectangles, catalog)
+            rotation_centers = []
+            if kind == 'relax':
+                rotation_centers = last_primaries
+                if len(primaries) / len(rectangles) < 0.25:
+                    rotation_centers += primaries
+            # assignment
+            catalog = [maf for maf in state.catalog if maf.category == kind]
+            assign_mafs(rectangles, catalog, rotation_centers)
+            last_primaries = primaries
 
         # add 1x1 rectangles
         for y in range(len(matrix)):
@@ -286,10 +300,10 @@ def calculate(user: str, data: FromJSON[CalculationData], provider: Provider):
     return calculation
 
 
-def assign_mafs(rectangles: list[Rect], catalog: list[Maf]):
+def assign_mafs(rectangles: list[Rect], catalog: list[Maf], rotation_centers: list[Rect]):
     catalog = list(sorted(catalog, key=lambda maf: maf.cost))
 
-    def find_maf_variants(budget: float, size: tuple[int, int]) -> list[tuple[Maf, float]]:
+    def find_maf_variants(budget: float, size: tuple[int, int]) -> list[tuple[Maf, bool, float]]:
         def match_size(w, h):
             return w <= size[0] < w * 3 and h <= size[1] < h * 3
 
@@ -298,9 +312,9 @@ def assign_mafs(rectangles: list[Rect], catalog: list[Maf]):
             if maf.cost < budget:
                 x, y = maf.tiles
                 if match_size(x, y):
-                    variants.append((maf, 0.0))
+                    variants.append((maf, False, 0.0))
                 if match_size(y, x):
-                    variants.append((maf, 90.0 * 0.017453))
+                    variants.append((maf, True, 90.0))
             else:
                 break
         return variants
@@ -313,7 +327,50 @@ def assign_mafs(rectangles: list[Rect], catalog: list[Maf]):
         variants = find_maf_variants(budget, rect.size)
         if variants:
             # cheapest = variants[0]
-            maf, rotation = variants[-1]
+            # high cost =  maf, rotation = variants[-1]
+
+
+
+            rx, ry = rect.size
+
+            def get_variant_aspect(variant: tuple[Maf, bool, float]):
+                if variant[1]:
+                    my, mx = variant[0].tiles
+                else:
+                    mx, my = variant[0].tiles
+                return mx / rx + my / ry
+
+            variants = list(sorted(variants, key=lambda variant: get_variant_aspect(variant)))
+            # best aspect ratio match
+            maf, rotated, rotation = variants[-1]
+
+            if rotation_centers:
+                def find_closest_center(rect: Rect) -> Optional[Point]:
+                    best_distance = None
+                    best_center = None
+                    center = Point(
+                        rect.position[0] + rect.size[0] / 2,
+                        rect.position[1] + rect.size[1] / 2
+                    )
+                    for primary in rotation_centers:
+                        primary_center = Point(
+                            primary.position[0] + primary.size[0] / 2,
+                            primary.position[1] + primary.size[1] / 2
+                        )
+                        distance = shapely.distance(center, primary_center)
+                        if best_distance is None or distance < best_distance:
+                            best_distance = distance
+                            best_center = primary_center
+                    return best_center
+
+                center = find_closest_center(rect)
+                if center:
+
+                    if rotation == 90 and center.x < rect.position[0]:
+                        rotation = -90
+                    elif rotation == 0 and center.y < rect.position[1]:
+                        rotation = 180
+
             budget -= maf.cost
             rect.maf = maf
-            rect.maf_rotation = rotation
+            rect.maf_rotation = rotation * 0.017453
