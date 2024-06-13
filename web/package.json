@@ -11,18 +11,22 @@
   "dependencies": {
     "@turf/turf": "^6.5.0",
     "clsx": "^2.1.1",
+    "file-saver": "^2.0.5",
     "mapbox-gl": "^3.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "three": "^0.165.0"
+    "three": "^0.165.0",
+    "x2js": "^3.4.4"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/geojson": "^7946.0.14",
     "@types/mapbox-gl": "^3.1.0",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@types/three": "^0.165.0",
     "@types/turf": "^3.5.32",
+    "@types/x2js": "^3.1.0",
     "@vitejs/plugin-react": "^4.2.1",
     "typescript": "^5.2.2",
     "vite": "^5.2.0"

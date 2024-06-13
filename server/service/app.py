@@ -333,7 +333,7 @@ def assign_mafs(rectangles: list[Rect], catalog: list[Maf], rotation_centers: li
 
             variants = list(sorted(variants, key=lambda variant: get_variant_aspect(variant)))
             # best aspect ratio match
-            if randomize:
+            if randomize or rect.size[0] == rect.size[1] == 2:
                 best_variant = choice(variants[-3:])
             else:
                 best_variant = variants[-1]

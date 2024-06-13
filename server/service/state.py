@@ -97,7 +97,7 @@ class Provider:
             self.users[user] = State(
                 value=42,
                 catalog=read_catalog(),
-                providers=['ЛЕБЕР', 'KENGURUPRO'],
+                providers=['ЛЕБЕР', 'KENGURUPRO', 'АДАНАТ'],
                 projects=[
                     Project(
                         name='Осенний бульвар 10к2',

@@ -139,6 +139,13 @@ export class View {
         this.models['leber-lgk-20.glb'] = await this.loadModel('./models/leber-lgk-20.glb');
         this.models['leber-lgk-247.glb'] = await this.loadModel('./models/leber-lgk-247.glb');
         this.models['leber-lgk-21.glb'] = await this.loadModel('./models/leber-lgk-21.glb');
+        this.models['adanat-18940.glb'] = await this.loadModel('./models/adanat-18940.glb');
+        this.models['adanat-18201.glb'] = await this.loadModel('./models/adanat-18201.glb');
+        this.models['adanat-18984.glb'] = await this.loadModel('./models/adanat-18984.glb');
+        this.models['adanat-18310.glb'] = await this.loadModel('./models/adanat-18310.glb');
+        this.models['adanat-18929.glb'] = await this.loadModel('./models/adanat-18929.glb');
+        this.models['adanat-23218.glb'] = await this.loadModel('./models/adanat-23218.glb');
+        this.models['adanat-18603.glb'] = await this.loadModel('./models/adanat-18603.glb');
         // sport
         this.models['kpro-018.glb'] = await this.loadModel('./models/kpro-018.glb');
         this.models['kpro-001.glb'] = await this.loadModel('./models/kpro-001.glb');
@@ -151,6 +158,9 @@ export class View {
         // relax
         this.models['leber-lgud-18.glb'] = await this.loadModel('./models/leber-lgud-18.glb');
         this.models['leber-lgdp-14.glb'] = await this.loadModel('./models/leber-lgdp-14.glb');
+        this.models['adanat-10045-6.glb'] = await this.loadModel('./models/adanat-10045-6.glb');
+        this.models['adanat-10008.glb'] = await this.loadModel('./models/adanat-10008.glb');
+        this.models['adanat-14014.glb'] = await this.loadModel('./models/adanat-14014.glb');
     }
 
     async loadModel(path: string): Promise<GLTF> {
@@ -159,6 +169,9 @@ export class View {
 
             if ((node as any).isMesh && !node.name.startsWith('_')) {
                 node.castShadow = true;
+            }
+            if (node.name.startsWith('_outline')) {
+                // ((node as Mesh).material as MeshStandardMaterial).color = new Color(0x00ff00);
             }
         });
         return model;

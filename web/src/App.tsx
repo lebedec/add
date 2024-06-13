@@ -7,6 +7,9 @@ import {Brash, MafInstance, View, ViewLayer} from "./view.ts";
 import * as turf from '@turf/turf'
 import clsx from "clsx";
 
+import FileSaver from "file-saver";
+import X2JS from "x2js";
+
 const fNumber = Intl.NumberFormat('ru-RU');
 const fMoney = Intl.NumberFormat('ru-RU', {style: 'currency', currency: 'RUB'});
 
@@ -21,19 +24,20 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     const toggleProvider = (value: string) => {
         let index = providers.indexOf(value);
         if (index != -1) {
-            console.log('remove', value);
+
             providers.splice(index, 1);
             setProviders([...providers])
             view.projectProviders = [...providers];
         } else {
-            console.log('append', value);
+
             setProviders([value, ...providers])
             view.projectProviders = [value, ...providers];
         }
+        view.requestCalculation();
     }
-    console.log('prov', providers);
+
     const hasProvider = (value: string) => {
-        console.log('hash', value, providers.indexOf(value) != -1);
+
         return providers.indexOf(value) != -1;
     }
     const [result, setResult] = useState<MafInstance[]>([]);
@@ -82,6 +86,8 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                     maxDuration: 4000
                 });
 
+                setProjectShown(false);
+                setCatalogShown(false);
             }
 
             setBrash(value);
@@ -152,6 +158,17 @@ function Constructor(props: { state: State, map: Map, view: View }) {
     const generate = () => {
         view.generateProject();
     };
+    const exportProject = () => {
+        // saveAs('<hello>bubba</hello>', `${project.name}.xml`);
+        const serializer = new X2JS();
+        const xml = serializer.js2xml({
+            'mafs': result
+        });
+        var blob = new Blob([xml], {
+            type: "application/xml"
+        });
+        FileSaver.saveAs(blob, `${project.name}.xml`);
+    }
     const changeProject = (name: string) => {
         togglePen(null);
         setProjectName(name);
@@ -243,7 +260,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                     </tbody>
                 </table>
             </div>
-            <button>Скачать документы</button>
+            <button onClick={exportProject}>Скачать XML файлы интеграции</button>
             {/*<div className="ages">*/}
             {/*    {Object.keys(ages).map(key =>*/}
             {/*        <label key={key}>*/}
@@ -277,7 +294,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                         <div className="card">
                             <div className="title">{maf.name}</div>
                             <div className="codes">{maf.provider} {maf.code} {maf.number}</div>
-                            <div className="spacer" />
+                            <div className="spacer"/>
                             <div className="cost">{fMoney.format(maf.cost)}</div>
                         </div>
                     </div>

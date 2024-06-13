@@ -1,5 +1,48 @@
 [
   {
+    "name": "Скамейка «Пенек»",
+    "key": "adanat-10045-6",
+    "provider": "АДАНАТ",
+    "number": "3170062",
+    "code": "10045-6",
+    "category": "relax",
+    "cost": 21726.47,
+    "preview": "4989cb3f-8985-4c13-9209-a816773e1ef6.jpeg",
+    "model": "adanat-10045-6.glb",
+    "size": [900, 900, 420],
+    "safe": [900, 900],
+    "tiles": [2, 2]
+  },
+  {
+    "name": "Скамейка «Новая Волна»",
+    "key": "adanat-10008",
+    "provider": "АДАНАТ",
+    "number": "3170201",
+    "code": "10008",
+    "category": "relax",
+    "cost": 37961.86,
+    "preview": "bd3a71c8-30e1-4f9f-99d8-251e2b600d10.png",
+    "model": "adanat-10008.glb",
+    "size": [1800, 950, 950],
+    "safe": [1800, 950],
+    "tiles": [3, 2]
+  },
+  {
+    "name": "Качели «Бриз» со спинкой",
+    "key": "adanat-14014",
+    "provider": "АДАНАТ",
+    "number": "3170099",
+    "code": "14014",
+    "category": "relax",
+    "cost": 38980.54,
+    "preview": "dd0a8b9a-1012-444b-b0f4-ea623a65ac7a.png",
+    "model": "adanat-14014.glb",
+    "size": [2200, 705, 2500],
+    "safe": [2200, 705],
+    "tiles": [4, 2]
+  },
+
+  {
     "name": "Диван парковый",
     "key": "leber-lgdp-14",
     "provider": "ЛЕБЕР",
