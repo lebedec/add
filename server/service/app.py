@@ -78,7 +78,7 @@ def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
     rxo = randint(0, atlas_w - int(area_w))
     ryo = randint(0, 32 - int(area_h))
     rxo = 0
-    ryo = 0
+    # ryo = 0
     pattern_offset = pattern_offset[pattern_key]
     for y in range(0, min(atlas_h, int(area_h))):
         for x in range(0, min(atlas_w, int(area_w))):

@@ -209,8 +209,10 @@ function Constructor(props: { state: State, map: Map, view: View }) {
 
     return <>
         <div className="header">
-            <img src="/icon.svg"/>
+            {/*<img src="/icon.svg"/>*/}
+            <img src="/logo-a.svg"/>
             <h1>Агентство дворовых дел</h1>
+
             <div className="spacer"/>
             <div key={resultTotal} className="budget-value">{fNumber.format(resultTotal)}</div>
 
@@ -272,9 +274,8 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             {/*</div>*/}
         </aside>
         <aside className={clsx("right", catalogShown && "open")}>
-            <h2>Каталог</h2>
             <div className="providersBar">
-                <h3>Поставщики</h3>
+                <h3>Поставщики <button onClick={() => setCatalogShown(!catalogShown)}>Каталог</button></h3>
                 <div className="providers">
                     {state.providers.map(name =>
                         <span
@@ -286,6 +287,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                         </span>
                     )}
                 </div>
+
             </div>
             <div className="catalog">
                 {state.catalog.filter(maf => providers.includes(maf.provider)).map(maf =>
@@ -302,36 +304,44 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             </div>
         </aside>
         <div className="footer">
-
-            <button onClick={() => setCatalogShown(!catalogShown)}>Каталог</button>
-            <button onClick={erase}>❌Очистить</button>
-            <input type="range" min={0} max={3} value={brashSize}
-                   onChange={event => changeBrashSize(parseInt(event.target.value))}/>
-            <button className={clsx({active: brash == 'sport'})} onClick={() => togglePen('sport')}>🖊️Спорт</button>
-            <button className={clsx({active: brash == 'child'})} onClick={() => togglePen('child')}>🖊️Дети</button>
-            <button className={clsx({active: brash == 'relax'})} onClick={() => togglePen('relax')}>🖊️Отдых</button>
-            <button className={clsx({active: brash == 'erase'})} onClick={() => togglePen('erase')}>🧹Удалить</button>
-
-            <div style={{height: '16px', border: "1px solid red"}}></div>
-            <button onClick={generate}>💫Сгенерировать</button>
-
-            <div className="sliders">
-                <div>Спорт</div>
-                <label className="switch">
-                    <input type="checkbox" checked={ages.sport} onChange={e => changeAges('sport', e.target.checked)}/>
-                    <span className="slider"></span>
-                </label>
-                <div>Дети</div>
-                <label className="switch">
-                    <input type="checkbox" checked={ages.child} onChange={e => changeAges('child', e.target.checked)}/>
-                    <span className="slider"></span>
-                </label>
-                <div>Отдых</div>
-                <label className="switch">
-                    <input type="checkbox" checked={ages.relax} onChange={e => changeAges('relax', e.target.checked)}/>
-                    <span className="slider"></span>
-                </label>
+            <div className="panel">
+                <button onClick={erase}>❌Очистить</button>
+                <input type="range" min={0} max={3} value={brashSize}
+                       onChange={event => changeBrashSize(parseInt(event.target.value))}/>
+                <button className={clsx({active: brash == 'sport'})} onClick={() => togglePen('sport')}>🖊️Спорт</button>
+                <button className={clsx({active: brash == 'child'})} onClick={() => togglePen('child')}>🖊️Дети</button>
+                <button className={clsx({active: brash == 'relax'})} onClick={() => togglePen('relax')}>🖊️Отдых</button>
+                <button className={clsx({active: brash == 'erase'})} onClick={() => togglePen('erase')}>🧹Удалить
+                </button>
             </div>
+
+            <div className="panel">
+                <button onClick={generate}>💫Сгенерировать</button>
+
+                <div className="sliders">
+                    <div>Спорт</div>
+                    <label className="switch">
+                        <input type="checkbox" checked={ages.sport}
+                               onChange={e => changeAges('sport', e.target.checked)}/>
+                        <span className="slider"></span>
+                    </label>
+                    <div>Дети</div>
+                    <label className="switch">
+                        <input type="checkbox" checked={ages.child}
+                               onChange={e => changeAges('child', e.target.checked)}/>
+                        <span className="slider"></span>
+                    </label>
+                    <div>Отдых</div>
+                    <label className="switch">
+                        <input type="checkbox" checked={ages.relax}
+                               onChange={e => changeAges('relax', e.target.checked)}/>
+                        <span className="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+
+
 
         </div>
     </>

@@ -43,10 +43,15 @@ body {
     display: flex;
     width: 60vw;
     gap: 10px;
+
+
+}
+
+.panel {
+    display: flex;
     background: white;
     padding: 10px;
     border-radius: 16px;
-
 
     justify-content: center;
     align-items: center;
@@ -88,7 +93,7 @@ button.active {
     border-radius: 16px;
     z-index: 100;
     transform: translateY(100%);
-    transition: transform 1s ease-in-out, width 1s ease-in-out;
+    transition: transform 0.5s ease-in-out, width 0.5s ease-in-out;
     display: flex;
     flex-direction: column;
     padding: 16px;
@@ -147,22 +152,24 @@ button.active {
 .right {
     position: fixed;
     overflow: auto;
-    right: 10px;
-    width: 500px;
-    bottom: 80px;
-    height: calc(100% - 160px);
-    background: #D9D9D9;
+    right: 30px;
+    width: 400px;
+    top: 80px;
+    height: 60px;
+    background: #D9D9D980;
+    backdrop-filter: blur(4px);
     z-index: 100;
-    transform: translateX(100%);
-    transition: transform 1s ease-in-out;
+
+    transition: height 0.5s ease-in-out;
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    border-radius: 16px;
 }
 
 .right.open {
-    transform: translateX(0%);
+    height: calc(100% - 190px);
 }
 
 .maf {
