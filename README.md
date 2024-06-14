@@ -17,5 +17,7 @@ git clone https://github.com/lebedec/add.git
 cd add/server
 pip3 install -r requirements.txt
 
-uvicorn service.app:app --port 80 --host 0.0.0.0 --log-level error &
+$(uvicorn service.app:app --port 80 --host 0.0.0.0 --log-level error 2>&1 > logs.txt) &
+
+ps -eo pid,comm,lstart,etime,time,args | grep uvicorn
 ```

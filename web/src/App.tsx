@@ -289,19 +289,24 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                 </div>
 
             </div>
-            <div className="catalog">
-                {state.catalog.filter(maf => providers.includes(maf.provider)).map(maf =>
-                    <div key={maf.key} className="maf">
-                        <img className="preview" src={"preview/" + maf.preview} alt={maf.name}/>
-                        <div className="card">
-                            <div className="title">{maf.name}</div>
-                            <div className="codes">{maf.provider} {maf.code} {maf.number}</div>
-                            <div className="spacer"/>
-                            <div className="cost">{fMoney.format(maf.cost)}</div>
+            {catalogShown ?
+
+                <div className="catalog">
+                    {state.catalog.filter(maf => providers.includes(maf.provider)).map(maf =>
+                        <div key={maf.key} className="maf">
+                            <img className="preview" src={"preview/" + maf.preview} alt={maf.name}/>
+                            <div className="card">
+                                <div className="title">{maf.name}</div>
+                                <div className="codes">{maf.provider} {maf.code} {maf.number}</div>
+                                <div className="spacer"/>
+                                <div className="cost">{fMoney.format(maf.cost)}</div>
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+
+                : <div></div>}
+
         </aside>
         <div className="footer">
             <div className="panel">
@@ -339,8 +344,6 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                     </label>
                 </div>
             </div>
-
-
 
 
         </div>

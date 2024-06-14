@@ -68,6 +68,7 @@ class State:
     projects: list[Project]
     catalog: list[Maf]
     providers: list[str]
+    last_project: Optional[str]
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -98,6 +99,7 @@ class Provider:
                 value=42,
                 catalog=read_catalog(),
                 providers=['ЛЕБЕР', 'KENGURUPRO', 'АДАНАТ'],
+                last_project=None,
                 projects=[
                     Project(
                         name='Осенний бульвар 10к2',
@@ -112,14 +114,14 @@ class Provider:
                         pitch=48,
                         zoom=18.0,
                         age_groups={
-                            'sport': False,
+                            'sport': True,
                             'child': True,
                             'relax': True
                         }
                     ),
                     Project(
                         name='Осенний бульвар 2',
-                        budget=650_000,
+                        budget=950_000,
                         geo_polygon=as_geo(Polygon([
                             [37.40959399215026, 55.75294214720114],
                             [37.409836462281106, 55.75294462373509],
@@ -130,7 +132,7 @@ class Provider:
                         ])),
                         bearing=63,
                         pitch=50,
-                        zoom=18.76,
+                        zoom=19.26,
                         age_groups={
                             'sport': False,
                             'child': True,
@@ -139,7 +141,7 @@ class Provider:
                     ),
                     Project(
                         name='Осенний бульвар 3',
-                        budget=1847652,
+                        budget=1_247_652,
                         geo_polygon=as_geo(Polygon([
                             [37.40539583007029, 55.75555785027299],
                             [37.40568810122255, 55.75575603083945],
@@ -159,7 +161,7 @@ class Provider:
                     ),
                     Project(
                         name='Осенний бульвар 5к2',
-                        budget=1911505,
+                        budget=1_911_505,
                         geo_polygon=as_geo(Polygon(
 
                             [
@@ -186,7 +188,7 @@ class Provider:
                         pitch=42.5,
                         zoom=18.75,
                         age_groups={
-                            'sport': False,
+                            'sport': True,
                             'child': True,
                             'relax': True
                         }

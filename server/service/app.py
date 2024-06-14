@@ -49,15 +49,16 @@ class GenerationData:
 
 @post("/api/{user}/generation")
 def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
-    model = provider.get_state(user)
+    state = provider.get_state(user)
     patterns = provider.get_patterns()
-    project = model.get_project(data.value.name)
+    project = state.get_project(data.value.name)
+    is_first_generation = state.last_project != project.name
+    state.last_project = project.name
     ages = data.value.age_groups
     pattern_key = ''
     pattern_key += '1' if ages['sport'] else '0'
     pattern_key += '1' if ages['child'] else '0'
     pattern_key += '1' if ages['relax'] else '0'
-    print('generate for', ages, pattern_key)
     pattern_offset = {
         '000': 0,
         '100': 32,
@@ -75,9 +76,13 @@ def generate(user: str, data: FromJSON[GenerationData], provider: Provider):
     pixels = patterns.load()
     # print('w', area_w, atlas_w - area_w, 'h', area_h, 32 - area_h)
     # randomize generation
-    rxo = randint(0, atlas_w - int(area_w))
+
+    rxo = randint(0, 72 - int(area_w))
     ryo = randint(0, 32 - int(area_h))
-    rxo = 0
+
+    if is_first_generation:
+        rxo = 0
+        ryo = 0
     # ryo = 0
     pattern_offset = pattern_offset[pattern_key]
     for y in range(0, min(atlas_h, int(area_h))):
