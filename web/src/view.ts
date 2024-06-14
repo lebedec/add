@@ -3,7 +3,7 @@ import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {
     AmbientLight,
     BoxGeometry,
-    Camera,
+    Camera, Color,
     DirectionalLight,
     DoubleSide,
     EdgesGeometry,
@@ -23,7 +23,7 @@ import {
     WebGLRenderer
 } from "three";
 import {Polygon, Position} from "geojson";
-import { calculateProject, generateProject, Maf, Slot} from "./api.ts";
+import {calculateProject, generateProject, Maf, Slot} from "./api.ts";
 import * as turf from '@turf/turf'
 
 type ViewLoader = (scene: View) => void;
@@ -34,6 +34,22 @@ export interface MafInstance {
     id: number,
     maf: Maf
 }
+
+const COLORS_KIND: any = {
+    'erase': 0xdddddd,
+    'sport': 0xFFBDE4,
+    'child': 0xADFDEA,
+    'relax': 0xD0CFFF
+}
+
+const COLORS_MARKER = [
+    0xdddddd, // erase
+    0xFFBDE4, // sport
+    0xADFDEA, // child
+    0xD0CFFF // relax
+];
+const BACKGROUND = 0xF4F0EF;
+const OUTLINE = 0x444444;
 
 export class View {
     camera: Camera;
@@ -75,7 +91,8 @@ export class View {
     requestCalculation: () => void;
     requestGeneration: () => void;
 
-    updateMafs: (mafs: MafInstance[]) => void = () => {};
+    updateMafs: (mafs: MafInstance[]) => void = () => {
+    };
     counter: number = 0;
 
     constructor(map: Map, context: WebGLRenderingContext) {
@@ -97,12 +114,12 @@ export class View {
         this.centerMatrixInverse = this.centerMatrix.clone().invert();
 
         const skyColor = 0xB1E1FF;  // light blue
-        const groundColor = 0x000000;
-        const intensity2 = 1.0;
+        const groundColor = 0xB97A20;
+        const intensity2 = 1.4;
         const light2 = new HemisphereLight(skyColor, groundColor, intensity2);
         this.scene.add(light2);
 
-        this.light = new DirectionalLight(0xFFFFFF, 1.0);
+        this.light = new DirectionalLight(0xFFFFFF, 1.4);
         this.light.position.set(0, -50, 100);
         this.light.target.position.set(0, 0, 0);
         this.light.castShadow = true;
@@ -113,7 +130,7 @@ export class View {
         this.light.shadow.camera.far = 500;
         this.scene.add(this.light);
 
-        const ambientLight = new AmbientLight(0xFFFFFF, 2.0);
+        const ambientLight = new AmbientLight(0xFFFFFF, 1.6);
         this.scene.add(ambientLight);
 
         this.groupTiles.visible = false;
@@ -171,6 +188,7 @@ export class View {
                 node.castShadow = true;
             }
             if (node.name.startsWith('_outline')) {
+                (node as any).material.color = new Color(OUTLINE);
                 // ((node as Mesh).material as MeshStandardMaterial).color = new Color(0x00ff00);
             }
         });
@@ -225,7 +243,7 @@ export class View {
         const geometry = new ExtrudeGeometry(this.shape, {bevelEnabled: false, depth: 0.1});
         const mesh = new Mesh(geometry, new MeshPhongMaterial({
             flatShading: true,
-            color: 0xffffff,
+            color: BACKGROUND,
             opacity: 1.0,
             transparent: false
         }));
@@ -268,7 +286,7 @@ export class View {
             flatShading: true,
             side: DoubleSide,
         });
-        height = 0.1;
+        height = 0.0001;
         const geometry = new BoxGeometry(size.x - 0.3, size.y - 0.3, height);
         const mesh = new Mesh(geometry, material);
         tile.x += size.x / 2.0 - 0.5;
@@ -296,7 +314,7 @@ export class View {
 
     createCursor(): Mesh {
         const material2 = new MeshBasicMaterial({
-            color: 0x000000,
+            color: 0xaaaaaa,
             transparent: true,
             opacity: 0.5
         });
@@ -401,11 +419,7 @@ export class View {
                 if (removingRects[rkey]) {
                     delete removingRects[rkey];
                 } else {
-                    const color = {
-                        'sport': 0xFF0000,
-                        'child': 0x00FF00,
-                        'relax': 0x0000ff
-                    }[rect.maf_kind];
+                    const color = COLORS_KIND[rect.maf_kind];
                     this.createPlaceholder(
                         rkey,
                         new Vector3(...rect.position),
@@ -456,7 +470,6 @@ export class View {
                         }
 
 
-
                         this.shapeMatrix[y][x] = marker;
 
                         let current: Record<string, any> = {};
@@ -469,13 +482,7 @@ export class View {
                         if (current[key]) {
 
                         } else {
-                            const colors = [
-                                0x000000,
-                                0xFF0000,
-                                0x00FF00,
-                                0x0000ff
-                            ];
-                            this.createTile(key, new Vector3(x, y), colors[marker]);
+                            this.createTile(key, new Vector3(x, y), COLORS_MARKER[marker]);
                         }
                         this.requestCalculation();
                     }
@@ -512,6 +519,11 @@ export class View {
     }
 
     render() {
+        this.cursorMesh.visible = this.brash != null;
+        // if (this.brash != null) {
+        //     this.cursorMesh.material.color = new Color(COLORS_KIND[this.brash]);
+        //     this.cursorMesh.children[0].material.color = new Color(COLORS_KIND[this.brash]);
+        // }
         this.cursorMesh.scale.x = 1.0 + this.cursorRadius * 2;
         this.cursorMesh.scale.y = 1.0 + this.cursorRadius * 2;
         this.light.shadow.camera.updateProjectionMatrix();
@@ -621,7 +633,7 @@ function rectKey(rect: Slot): string {
 }
 
 function mafKey(rect: Slot): string {
-    return `${rect.maf?.key}:${rect.position[0]},${rect.position[1]}:${rect.size[0]}x${rect.size[1]}`;
+    return `${rect.maf?.key}:${rect.position[0]},${rect.position[1]}:${rect.size[0]}x${rect.size[1]}r${rect.maf_rotation}`;
 }
 
 function tileKey(brash: string, x: number, y: number): string {

@@ -7,7 +7,7 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 100;
+    z-index: 300;
     display: flex;
     gap: 10px;
     background: rgba(26, 26, 26, 0.47);
@@ -37,25 +37,27 @@ body {
 
 .footer {
     position: fixed;
-    bottom: 24px;
-    left: 10%;
+    bottom: 34px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 200;
     display: flex;
-    width: 60vw;
-    gap: 10px;
-
-
+    gap: 20px;
+    box-sizing: border-box;
 }
 
 .panel {
     display: flex;
     background: white;
-    padding: 10px;
+    padding: 4px;
     border-radius: 16px;
+    padding-right: 12px;
 
     justify-content: center;
     align-items: center;
     color: black;
+    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.08);
+    font-size: 14px;
 }
 
 #map-container {
@@ -85,35 +87,75 @@ button.active {
 
 .left {
     position: fixed;
-    left: 10%;
-    width: 400px;
-    bottom: 150px;
-    height: 60vh;
-    background: white;
+
+    left: 30px;
+    width: 500px;
+    top: 80px;
+    height: 28px;
+    background: rgba(245, 245, 245, 0.8);
+    backdrop-filter: blur(4px);
     border-radius: 16px;
     z-index: 100;
-    transform: translateY(100%);
-    transition: transform 0.5s ease-in-out, width 0.5s ease-in-out;
+    /*ransform: translate(-50%, -100%);*/
+    transition: width 0.5s ease-in-out, height 0.5s ease-in-out, background-color 0.5s ease-in-out;
     display: flex;
+
     flex-direction: column;
     padding: 16px;
+
+    overflow: hidden;
 }
 
 
 .left.open {
-    transform: translateY(0);
-    width: 60vw;
+    height: calc(100% - 206px);
+    width: calc(100% - 400px - 30px - 112px);
+    background: white;
+    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.08);
+}
+
+.right.open {
+    height: calc(100% - 206px);
+    /*background: #D9D9D9;*/
 }
 
 
 .table-container {
     flex-grow: 1;
     overflow: auto;
-    display: none;
+    margin-top: 8px;
+    border-radius: 4px;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+
+table th {
+    background: #F2F3F4;
+    font-size: 14px;
+    padding: 6px 12px;
+    text-align: left;
+    font-weight: 500;
+}
+
+table td {
+    font-size: 14px;
+    padding: 6px 12px;
+}
+
+table tr {
+    border-bottom: 1px solid #DFDFDE;
+}
+
+table tr:last-of-type {
+    border-bottom: none;
 }
 
 .tableShown {
-    display: block;
+
 }
 
 .maf-row {
@@ -122,25 +164,28 @@ button.active {
 
 @keyframes maf-row-new {
     0% {
-        color: red;
+        color: #5267C8;
+        font-weight: 500;
     }
     100% {
         color: black;
+        font-weight: 400;
     }
 }
 
 .budget-value {
     animation: budget-value-change 2s;
+    font-size: 14px;
 }
 
 @keyframes budget-value-change {
     0% {
-        color: red;
-        font-size: 20px;
+        color: #5267C8;
+        font-weight: 600;
     }
     100% {
         color: black;
-        font-size: 16px;
+        font-weight: 400;
     }
 }
 
@@ -151,28 +196,29 @@ button.active {
 
 .right {
     position: fixed;
-    overflow: auto;
+
     right: 30px;
     width: 400px;
     top: 80px;
-    height: 60px;
-    background: #D9D9D980;
-
+    height: 28px;
+    /*background: #D9D9D980;*/
+    background: rgba(245, 245, 245, 0.5);
     backdrop-filter: blur(4px);
     z-index: 100;
 
-    transition: height 0.5s ease-in-out, background-color 0.9s ease-in-out;
-    padding: 8px;
+    transition: height 0.5s ease-in-out;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     border-radius: 16px;
+    border: 1px solid #D9D9D944;
 }
 
-.right.open {
-    height: calc(100% - 190px);
-    background: #D9D9D9;
+.catalog {
+    overflow: auto;
 }
+
 
 .maf {
     background: white;
@@ -239,6 +285,11 @@ input:checked + .slider {
     background-color: #5267C8;
 }
 
+input:checked + .slider:hover {
+    background-color: #5e76e5;
+    cursor: pointer;
+}
+
 input:focus + .slider {
     /*box-shadow: 0 0 1px #2196F3;*/
 }
@@ -248,17 +299,17 @@ input:checked + .slider:before {
 }
 
 .sliders {
-    margin-top: 8px;
-    margin-bottom: 8px;
     display: flex;
     gap: 8px;
     align-items: center;
+    font-size: 14px;
+    margin-left: 12px;
 }
 
 input[type="range"] {
   -webkit-appearance: none;
   margin-right: 15px;
-  width: 200px;
+  width: 100px;
   height: 7px;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 5px;
@@ -293,17 +344,18 @@ input[type=range]::-webkit-slider-runnable-track  {
 
 }
 
-.providersBar > h3 {
+.providersBar h3 {
     font-size: 14px;
     color: #8A8D91;
+    font-weight: 500;
     margin: 0;
     padding: 0;
-    margin-bottom: 8px;
 }
 
 .providers {
     display: flex;
     gap: 8px;
+    align-items: center;
 }
 
 .providerLabel {
@@ -352,4 +404,148 @@ input[type=range]::-webkit-slider-runnable-track  {
     font-weight: 600;
     font-size: 14px;
     color: #06080A;
+}
+
+.buttonGen {
+    border-radius: 16px;
+    outline: none;
+    background-color: #5267C8;
+    color: white;
+    font-size: 16px;
+    padding: 6px 16px;
+    display: flex;
+    gap: 6px;
+    border: none;
+    align-items: center;
+    margin-left: 26px;
+}
+
+.buttonGen:hover {
+    background-color: #5e76e5;
+    cursor: pointer;
+}
+
+.buttonGen:active {
+
+    background-color: #3e4e96;
+}
+
+.buttonExport {
+    border-radius: 4px;
+    outline: none;
+    background-color: transparent;
+    color: #5267C8;
+    border: 1px solid #5267C8;
+    box-sizing: border-box;
+    font-size: 16px;
+    padding: 8px 12px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    cursor: pointer;
+    margin-top: 16px;
+    align-self: start;
+}
+
+.buttonExport:hover {
+    border-color: #5e76e5;
+    color: #5e76e5;
+    cursor: pointer;
+}
+
+.buttonExport:active {
+
+    border-color: #3e4e96;
+    color: #3e4e96;
+}
+
+.buttonBrash {
+    border-radius: 4px;
+    outline: none;
+    background-color: transparent;
+    color: black;
+    font-size: 16px;
+    padding: 8px 12px;
+    display: flex;
+    gap: 6px;
+    border: none;
+    align-items: center;
+    cursor: pointer;
+}
+
+.buttonClose {
+    border-radius: 4px;
+    outline: none;
+    background-color: transparent;
+
+    padding: 8px 12px;
+    display: flex;
+    gap: 6px;
+    border: none;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #8A8D91;
+    font-weight: 500;
+    padding-left: 0px;
+}
+
+.buttonClose:hover {
+    color: #5267C8;
+}
+
+.buttonClose:active {
+    color: #3e4e96;
+}
+
+.buttonSportActive {
+    color: #F52BA4;
+    background: #FFEFF9;
+}
+
+.buttonChildActive {
+    color: #07A781;
+    background: #D6FBF2;
+}
+
+.buttonRelaxActive {
+    color: #322FDA;
+    background: #EEEEFF;
+}
+
+.buttonEraseActive {
+
+    background: #ececec;
+}
+
+
+
+.projectSelect {
+
+    padding-right: 8px;
+    border-radius: 4px;
+
+    overflow: hidden;
+}
+
+.projectSelect:hover {
+    border: 1px solid #5267C8;
+}
+
+.projectSelect > select {
+    appearance: none;
+    outline: none;
+    padding: 8px 12px;
+    padding-right: 4px;
+    font-weight: 500;
+    font-size: 20px;
+    color: #06080A;
+    border: none;
+
+}
+
+.projBar {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
 }
