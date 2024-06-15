@@ -73,6 +73,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             setBrash(null);
             view.groupTiles.visible = false;
             view.brash = null;
+            map.dragPan.enable();
             // map.zoomTo(project.zoom);
 
         } else {
@@ -93,6 +94,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
             setBrash(value);
             view.groupTiles.visible = true;
             view.brash = value;
+            map.dragPan.disable();
             //
             // map.zoomTo(project.zoom + 2.0);
 
@@ -223,7 +225,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                         <option key={project.name} value={project.name}>{project.name}</option>
                     )}
                 </select>
-                <svg width="20" height="12" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="16" height="9" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M5.00042 3.78102L8.30028 0.481201L9.24308 1.42401L5.00042 5.66668L0.757812 1.42401L1.70062 0.481201L5.00042 3.78102Z"
                         fill="black"/>
@@ -263,9 +265,14 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                 }
 
                 <div className="spacer"/>
+
+                {
+                    projectShown && <div style={{color: '#8A8D91', marginRight: '4px'}}>Бюджет</div>
+                }
+
                 <div key={resultTotal} className="budget-value">{fNumber.format(resultTotal)} </div>
 
-                <div>&nbsp;/&nbsp;{fNumber.format(budget)} ₽</div>
+                <div style={{fontWeight: '600', color: '#5267C8'}}>&nbsp;/&nbsp;{fNumber.format(budget)} ₽</div>
                 <label>
                     <input type="range" min={50000} max={budgetMax} value={budget} onChange={changeBudget}/>
                 </label>
@@ -279,7 +286,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                         <th>№</th>
                         <th>Наименование</th>
                         <th>Производитель</th>
-                        <th>Цена</th>
+                        <th>Цена, ₽</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -288,7 +295,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                             <td>{maf.number}</td>
                             <td>{maf.name}</td>
                             <td>{maf.provider} {maf.code}</td>
-                            <td>{Math.floor(maf.cost)}</td>
+                            <td style={{textAlign: 'right'}}>{fNumber.format(Math.floor(maf.cost))}</td>
                         </tr>
                     )}
                     </tbody>
@@ -415,7 +422,7 @@ function Constructor(props: { state: State, map: Map, view: View }) {
                             d="M5.22376 4.90299L1.92393 8.2028L5.38681 11.6657L6.16657 11.6652V11.6644H6.9476L9.4664 9.1456L5.22376 4.90299ZM6.16657 3.96018L10.4092 8.2028L12.2948 6.3172L8.0522 2.07457L6.16657 3.96018ZM8.83327 11.6644H13.4999V12.9977H7.49993L4.83486 12.9994L0.509713 8.6742C0.249366 8.41387 0.249366 7.9918 0.509713 7.7314L7.5808 0.660353C7.84113 0.4 8.26327 0.4 8.5236 0.660353L13.7091 5.8458C13.9694 6.10613 13.9694 6.52827 13.7091 6.7886L8.83327 11.6644Z"
                             fill="currentColor"/>
                     </svg>
-                    Очистить
+                    Стереть
                 </button>
 
                 <button className="buttonBrash" onClick={erase}>
